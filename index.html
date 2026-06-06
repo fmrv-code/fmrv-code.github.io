@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ActuSearch — Vos actualités en direct</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+
+    <!-- EN-TÊTE : titre + barre de recherche -->
+    <header>
+      <h1>📰 ActuSearch</h1>
+      <p class="tagline">Recherchez l'actualité en temps réel</p>
+
+      <div class="barre-recherche">
+        <!-- Le champ où l'utilisateur tape son sujet -->
+        <input
+          type="text"
+          id="champ-recherche"
+          placeholder="Ex : intelligence artificielle, sport, politique..."
+        />
+        <!-- Le bouton qui lancera la recherche -->
+        <button id="bouton-recherche">Rechercher</button>
+      </div>
+    </header>
+
+    <!-- ZONE DE RÉSULTATS : les articles apparaîtront ici -->
+    <main>
+      <div id="resultats">
+        <!-- Vide pour l'instant, rempli dynamiquement par JavaScript -->
+        <p class="message-accueil">
+          Tapez un sujet ci-dessus pour voir les dernières actualités. 🔍
+        </p>
+      </div>
+    </main>
+
+    <!-- PIED DE PAGE -->
+    <footer>
+      <p>© 2026 ActuSearch — Propulsé par NewsAPI</p>
+    </footer>
+
+    <!-- Le script JavaScript (on le branchera à l'étape 3) -->
+    <script src="script.js"></script>
+  </body>
+</html>
