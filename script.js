@@ -1,5 +1,5 @@
-// Ta clé API NewsAPI (remplace par la tienne)
-const CLE_API = "27a4fdcd93ea459eb77152d0d7dafe83";
+// Ta clé API GNews (remplace par la tienne)
+const CLE_API = "2717812ee3e186f9d83085a61daef964";
 
 // On récupère les éléments de la page
 const bouton = document.getElementById("bouton-recherche");
@@ -23,31 +23,25 @@ champ.addEventListener("keypress", (e) => {
 
 // La fonction qui va chercher les actualités
 async function rechercherActualites(sujet) {
-  // Affiche un message de chargement
   resultats.innerHTML = "<p class='message-accueil'>⏳ Recherche en cours...</p>";
 
   try {
-    // Appel à l'API NewsAPI
     const reponse = await fetch(
-      `https://newsapi.org/v2/everything?q=${sujet}&language=fr&sortBy=publishedAt&pageSize=10&apiKey=${CLE_API}`
+      `https://gnews.io/api/v4/search?q=${encodeURIComponent(sujet)}&lang=fr&max=10&apikey=${CLE_API}`
     );
     const donnees = await reponse.json();
 
-    // Si aucun article trouvé
-    if (donnees.articles.length === 0) {
+    if (!donnees.articles || donnees.articles.length === 0) {
       resultats.innerHTML = "<p class='message-accueil'>😕 Aucun article trouvé pour ce sujet.</p>";
       return;
     }
 
-    // Affiche les articles
     resultats.innerHTML = "";
     donnees.articles.forEach((article) => {
-      // Ignore les articles sans titre
-      if (article.title === "[Removed]") return;
-
       const carte = document.createElement("div");
       carte.className = "carte-article";
       carte.innerHTML = `
+        ${article.image ? `<img src="${article.image}" alt="image article" style="width:100%;border-radius:8px;margin-bottom:10px;">` : ""}
         <h2>${article.title}</h2>
         <p>${article.description || "Pas de description disponible."}</p>
         <p class="source">📰 ${article.source.name} — ${new Date(article.publishedAt).toLocaleDateString("fr-FR")}</p>
