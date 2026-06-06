@@ -3,45 +3,43 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ActuSearch — Vos actualités en direct</title>
+    <title>ActuSearch — Actualités en temps réel</title>
     <link rel="stylesheet" href="style.css" />
   </head>
-
   <body>
 
-    <!-- EN-TÊTE : titre + barre de recherche -->
     <header>
-      <h1>📰 ActuSearch</h1>
-      <p class="tagline">Recherchez l'actualité en temps réel</p>
-
+      <h1>⚡ ActuSearch</h1>
+      <p class="tagline">Toute l'actualité française en temps réel</p>
       <div class="barre-recherche">
-        <!-- Le champ où l'utilisateur tape son sujet -->
-        <input
-          type="text"
-          id="champ-recherche"
-          placeholder="Ex : intelligence artificielle, sport, politique..."
-        />
-        <!-- Le bouton qui lancera la recherche -->
+        <input type="text" id="champ-recherche"
+          placeholder="Ex : football, technologie, politique..." />
         <button id="bouton-recherche">Rechercher</button>
       </div>
     </header>
 
-    <!-- ZONE DE RÉSULTATS : les articles apparaîtront ici -->
+    <!-- Boutons de filtre par source -->
+    <div class="filtres">
+      <button class="filtre-btn actif" data-source="toutes">🌍 Toutes les sources</button>
+      <button class="filtre-btn" data-source="Franceinfo">📺 Franceinfo</button>
+      <button class="filtre-btn" data-source="Le Monde">🌍 Le Monde</button>
+      <button class="filtre-btn" data-source="Le Figaro">📰 Le Figaro</button>
+      <button class="filtre-btn" data-source="L'Équipe">⚽ L'Équipe</button>
+      <button class="filtre-btn" data-source="Frandroid">📱 Frandroid</button>
+      <button class="filtre-btn" data-source="01net">💻 01net</button>
+      <button class="filtre-btn" data-source="Libération">✊ Libération</button>
+    </div>
+
     <main>
       <div id="resultats">
-        <!-- Vide pour l'instant, rempli dynamiquement par JavaScript -->
-        <p class="message-accueil">
-          Tapez un sujet ci-dessus pour voir les dernières actualités. 🔍
-        </p>
+        <p class="message-accueil">⚡ Tapez un sujet pour explorer l'actualité</p>
       </div>
     </main>
 
-    <!-- PIED DE PAGE -->
     <footer>
-      <p>© 2026 ActuSearch — Propulsé par NewsAPI</p>
+      <p>⚡ ActuSearch 2026 — Sources : Franceinfo, Le Monde, Le Figaro, L'Équipe, Frandroid, 01net, Libération</p>
     </footer>
 
-    <!-- Le script JavaScript (on le branchera à l'étape 3) -->
     <script src="script.js"></script>
   </body>
 </html>

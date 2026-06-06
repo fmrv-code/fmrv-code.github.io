@@ -1,23 +1,33 @@
-// =====================
-// SOURCES RSS FRANÇAISES
-// =====================
 const SOURCES = [
-  { nom: "Frandroid",  url: "https://www.frandroid.com/feed" },
+  { nom: "Franceinfo", url: "https://www.francetvinfo.fr/titres.rss" },
   { nom: "Le Monde",   url: "https://www.lemonde.fr/rss/une.xml" },
-  { nom: "L'Équipe",   url: "https://www.lequipe.fr/rss/actu_rss.xml" },
-  { nom: "01net",      url: "https://www.01net.com/feed/" },
   { nom: "Le Figaro",  url: "https://www.lefigaro.fr/rss/figaro_actualites.xml" },
+  { nom: "L'Équipe",   url: "https://www.lequipe.fr/rss/actu_rss.xml" },
+  { nom: "Frandroid",  url: "https://www.frandroid.com/feed" },
+  { nom: "01net",      url: "https://www.01net.com/feed/" },
+  { nom: "Libération", url: "https://www.liberation.fr/arc/outboundfeeds/rss/" },
 ];
 
-// Proxy gratuit qui contourne le blocage CORS
 const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
 
-// Éléments de la page
-const bouton   = document.getElementById("bouton-recherche");
-const champ    = document.getElementById("champ-recherche");
+const bouton    = document.getElementById("bouton-recherche");
+const champ     = document.getElementById("champ-recherche");
 const resultats = document.getElementById("resultats");
+const filtres   = document.querySelectorAll(".filtre-btn");
 
-// Clic sur Rechercher
+let tousLesArticles = [];
+let sourceActive = "toutes";
+
+// Gestion des filtres
+filtres.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    filtres.forEach((b) => b.classList.remove("actif"));
+    btn.classList.add("actif");
+    sourceActive = btn.dataset.source;
+    afficherArticles();
+  });
+});
+
 bouton.addEventListener("click", () => {
   const sujet = champ.value.trim().toLowerCase();
   if (sujet === "") {
@@ -27,55 +37,54 @@ bouton.addEventListener("click", () => {
   rechercherActualites(sujet);
 });
 
-// Touche Entrée
 champ.addEventListener("keypress", (e) => {
   if (e.key === "Enter") bouton.click();
 });
 
-// Fonction principale
 async function rechercherActualites(sujet) {
-  resultats.innerHTML = "<p class='message-accueil'>⏳ Recherche en cours...</p>";
+  resultats.innerHTML = "<p class='message-accueil'>⏳ Recherche en cours sur toutes les sources...</p>";
+  tousLesArticles = [];
 
-  let tousLesArticles = [];
-
-  // On récupère les articles de chaque source
   for (const source of SOURCES) {
     try {
       const reponse = await fetch(PROXY + encodeURIComponent(source.url));
       const donnees = await reponse.json();
 
       if (donnees.items) {
-        // On filtre les articles qui contiennent le sujet recherché
-        const articlesFiltres = donnees.items.filter((article) => {
+        const filtres = donnees.items.filter((article) => {
           const titre = (article.title || "").toLowerCase();
-          const description = (article.description || "").toLowerCase();
-          return titre.includes(sujet) || description.includes(sujet);
+          const desc  = (article.description || "").toLowerCase();
+          return titre.includes(sujet) || desc.includes(sujet);
         });
-
-        // On ajoute le nom de la source à chaque article
-        articlesFiltres.forEach((a) => (a.sourcenom = source.nom));
-        tousLesArticles = tousLesArticles.concat(articlesFiltres);
+        filtres.forEach((a) => (a.sourcenom = source.nom));
+        tousLesArticles = tousLesArticles.concat(filtres);
       }
     } catch (e) {
-      console.log("Erreur avec " + source.nom);
+      console.log("Erreur : " + source.nom);
     }
   }
 
-  // Trie par date (plus récent en premier)
   tousLesArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+  afficherArticles();
+}
 
-  // Affichage
-  if (tousLesArticles.length === 0) {
-    resultats.innerHTML = "<p class='message-accueil'>😕 Aucun article trouvé pour « " + sujet + " ».</p>";
+function afficherArticles() {
+  const articles = sourceActive === "toutes"
+    ? tousLesArticles
+    : tousLesArticles.filter((a) => a.sourcenom === sourceActive);
+
+  if (articles.length === 0) {
+    resultats.innerHTML = "<p class='message-accueil'>😕 Aucun article trouvé.</p>";
     return;
   }
 
-  resultats.innerHTML = "";
-  tousLesArticles.forEach((article) => {
+  resultats.innerHTML = `<p class="compteur">✅ ${articles.length} article(s) trouvé(s)</p>`;
+
+  articles.forEach((article) => {
     const carte = document.createElement("div");
     carte.className = "carte-article";
     carte.innerHTML = `
-      ${article.thumbnail ? `<img src="${article.thumbnail}" alt="image" style="width:100%;border-radius:8px;margin-bottom:10px;object-fit:cover;max-height:200px;">` : ""}
+      ${article.thumbnail ? `<img src="${article.thumbnail}" alt="image">` : ""}
       <h2>${article.title}</h2>
       <p>${article.description ? article.description.replace(/<[^>]+>/g, "").substring(0, 200) + "..." : "Pas de description."}</p>
       <p class="source">📰 ${article.sourcenom} — ${new Date(article.pubDate).toLocaleDateString("fr-FR")}</p>
