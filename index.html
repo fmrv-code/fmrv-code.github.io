@@ -3,110 +3,116 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NewsFlow — Mon Dashboard</title>
+  <title>NewsFlow — Actualités</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
  
-  <!-- ===== NAVBAR ===== -->
+  <!-- Orbes lumineuses animées en arrière-plan (effet "liquid") -->
+  <div class="ambient">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+ 
+  <!-- ===== NAVBAR (verre liquide) ===== -->
   <header class="navbar">
     <div class="navbar-inner">
       <div class="navbar-logo">
-        <span class="logo-icon">⚡</span>
+        <span class="logo-dot"></span>
         <span class="logo-text">NewsFlow</span>
       </div>
-      <div class="navbar-right">
-        <span class="navbar-date" id="navbar-date"></span>
-        <span class="navbar-counter"><span id="article-count">0</span> articles</span>
+ 
+      <!-- Barre de recherche centrale -->
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input type="text" id="search-input" class="search-input"
+               placeholder="Rechercher une actu, un sujet, une entreprise…" />
+        <button class="search-clear" id="search-clear" aria-label="Effacer">×</button>
       </div>
+ 
+      <div class="navbar-date" id="navbar-date"></div>
     </div>
   </header>
  
   <main class="container">
  
-    <!-- ===== WIDGETS DASHBOARD ===== -->
-    <section class="dashboard-grid">
+    <!-- ===== DASHBOARD ===== -->
+    <section class="dashboard" id="dashboard">
  
-      <!-- Widget Météo -->
-      <div class="widget widget-meteo" id="widget-meteo">
-        <div class="widget-header">
-          <span class="widget-icon">🌤️</span>
-          <span class="widget-label">Météo · Sens</span>
+      <!-- Briefing du jour (grande carte) -->
+      <article class="card glass briefing">
+        <div class="briefing-head">
+          <span class="eyebrow">Briefing du jour</span>
+          <span class="briefing-time" id="briefing-time"></span>
         </div>
-        <div class="meteo-main">
-          <span class="meteo-temp" id="meteo-temp">--°</span>
-          <span class="meteo-desc" id="meteo-desc">Chargement…</span>
-        </div>
-        <div class="meteo-details">
-          <span id="meteo-humidity">💧 --%</span>
-          <span id="meteo-wind">💨 -- km/h</span>
-          <span id="meteo-feels">🌡️ Ressenti --°</span>
-        </div>
-      </div>
+        <h1 class="briefing-title">Votre matin en bref</h1>
+        <ol class="briefing-list" id="briefing-list">
+          <li class="skeleton-line"></li>
+          <li class="skeleton-line"></li>
+          <li class="skeleton-line"></li>
+        </ol>
+      </article>
  
-      <!-- Widget Briefing du jour -->
-      <div class="widget widget-briefing">
-        <div class="widget-header">
-          <span class="widget-icon">📋</span>
-          <span class="widget-label">Briefing du jour</span>
+      <!-- Météo premium -->
+      <article class="card glass weather" id="weather">
+        <div class="weather-head">
+          <span class="eyebrow">Météo · Sens</span>
+          <span class="weather-emoji" id="weather-emoji">☁️</span>
         </div>
-        <ul class="briefing-list" id="briefing-list">
-          <li class="briefing-loading">Chargement des titres…</li>
-        </ul>
-      </div>
- 
-      <!-- Widget Stats -->
-      <div class="widget widget-stats">
-        <div class="widget-header">
-          <span class="widget-icon">📡</span>
-          <span class="widget-label">Sources actives</span>
+        <div class="weather-now">
+          <span class="weather-temp" id="weather-temp">--°</span>
+          <span class="weather-desc" id="weather-desc">Chargement…</span>
         </div>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <span class="stat-number" id="stat-sources">0</span>
-            <span class="stat-label">Sources</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number" id="stat-articles">0</span>
-            <span class="stat-label">Articles</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number" id="stat-categories">6</span>
-            <span class="stat-label">Catégories</span>
-          </div>
+        <div class="weather-meta">
+          <div><span class="wm-label">Ressenti</span><span id="w-feels">--°</span></div>
+          <div><span class="wm-label">Vent</span><span id="w-wind">-- km/h</span></div>
+          <div><span class="wm-label">Humidité</span><span id="w-humid">--%</span></div>
         </div>
-      </div>
+        <div class="weather-forecast" id="weather-forecast"></div>
+      </article>
  
     </section>
  
-    <!-- ===== FILTRES ===== -->
-    <section class="filters" id="filters">
-      <button class="filter-btn active" data-filter="all">🌐 Tout</button>
-      <button class="filter-btn" data-filter="tech">💻 Tech</button>
-      <button class="filter-btn" data-filter="hardware">🖥️ Hardware</button>
-      <button class="filter-btn" data-filter="gaming">🎮 Gaming</button>
-      <button class="filter-btn" data-filter="actu">📰 Actu</button>
-      <button class="filter-btn" data-filter="science">🔬 Science</button>
-      <button class="filter-btn" data-filter="sport">🏃 Sport</button>
-      <button class="filter-btn" data-filter="mobilite">⚡ Mobilité</button>
-    </section>
+    <!-- ===== NAVIGATION CATÉGORIES ===== -->
+    <nav class="cats" id="cats">
+      <button class="cat active" data-cat="all">Tout</button>
+      <button class="cat" data-cat="actu">Monde &amp; France</button>
+      <button class="cat" data-cat="tech">Tech</button>
+      <button class="cat" data-cat="ia">IA</button>
+      <button class="cat" data-cat="hardware">Hardware</button>
+      <button class="cat" data-cat="gaming">Gaming</button>
+      <button class="cat" data-cat="science">Science</button>
+      <button class="cat" data-cat="espace">Espace</button>
+      <button class="cat" data-cat="sante">Santé</button>
+      <button class="cat" data-cat="sport">Sport</button>
+      <button class="cat" data-cat="mobilite">Mobilité</button>
+    </nav>
  
-    <!-- ===== LOADER ===== -->
-    <div class="loader" id="loader">
-      <div class="loader-spinner"></div>
-      <p>Chargement de <span id="loader-progress">0</span> / <span id="loader-total">0</span> sources…</p>
+    <!-- Titre de section + compteur -->
+    <div class="section-head">
+      <h2 class="section-title" id="section-title">À la une</h2>
+      <span class="section-count"><span id="article-count">0</span> articles</span>
     </div>
  
-    <!-- ===== GRILLE NEWS ===== -->
-    <section class="news-grid" id="news-grid"></section>
+    <!-- Loader -->
+    <div class="loader" id="loader">
+      <div class="loader-ring"></div>
+      <p>Chargement · <span id="loader-progress">0</span>/<span id="loader-total">0</span> sources</p>
+    </div>
+ 
+    <!-- Grille articles -->
+    <section class="grid" id="grid"></section>
  
   </main>
  
   <footer class="footer">
-    <p>NewsFlow · <span id="footer-sources">25</span> sources françaises · Hébergé sur Netlify</p>
+    <p>NewsFlow · 25 sources françaises · Mis à jour en direct</p>
   </footer>
  
   <script src="script.js"></script>
