@@ -1,55 +1,59 @@
 
 // =============================================
 // auth.js — Protection par mot de passe
-// Netlify Edge Function : s'exécute sur le
-// serveur AVANT que la page soit envoyée.
+// Version corrigée pour Deno (Netlify Edge)
 // =============================================
  
 export default async function auth(request, context) {
  
   // ===== TON MOT DE PASSE ICI =====
-  // Change ces deux valeurs par les tiennes
   const USERNAME = "FM";
   const PASSWORD = "azerty"; // ← remplace par ton vrai mot de passe
  
-  // Récupère l'en-tête Authorization envoyé par le navigateur
+  // Récupère l'en-tête Authorization
   const authHeader = request.headers.get("Authorization");
  
-  // Si pas d'en-tête → demande au navigateur d'afficher la fenêtre de connexion
+  // Fonction pour décoder le Base64 (compatible Deno)
+  function decodeBase64(str) {
+    const binary = atob(str);
+    return binary;
+  }
+ 
+  // Si pas d'en-tête → demande la connexion
   if (!authHeader || !authHeader.startsWith("Basic ")) {
-    return new Response("Accès refusé — Identifiez-vous.", {
+    return new Response("Accès refusé.", {
       status: 401,
       headers: {
-        // Cette ligne déclenche la fenêtre de connexion dans le navigateur
-        "WWW-Authenticate": 'Basic realm="NewsFlow — Accès privé"',
-        "Content-Type": "text/plain; charset=utf-8",
+        "WWW-Authenticate": 'Basic realm="NewsFlow"',
       },
     });
   }
  
-  // Décode le nom d'utilisateur et mot de passe envoyés par le navigateur
-  // Le navigateur les envoie en Base64 : "FM:MotDePasse" → encodé
-  const base64 = authHeader.slice("Basic ".length);
-  const decoded = atob(base64);                    // décode le Base64
-  const [user, pass] = decoded.split(":");         // sépare user et password
+  try {
+    // Décode les identifiants
+    const base64 = authHeader.replace("Basic ", "");
+    const decoded = decodeBase64(base64);
+    const colonIndex = decoded.indexOf(":");
+    const user = decoded.substring(0, colonIndex);
+    const pass = decoded.substring(colonIndex + 1);
  
-  // Vérifie que user ET password correspondent
-  if (user === USERNAME && pass === PASSWORD) {
-    // ✅ Correct → laisse passer, affiche la page normalement
-    return context.next();
+    // Vérifie les identifiants
+    if (user === USERNAME && pass === PASSWORD) {
+      return context.next(); // ✅ Accès autorisé
+    }
+  } catch (e) {
+    // Erreur de décodage
   }
  
-  // ❌ Mauvais mot de passe → re-demande les identifiants
+  // ❌ Mauvais identifiants
   return new Response("Identifiants incorrects.", {
     status: 401,
     headers: {
-      "WWW-Authenticate": 'Basic realm="NewsFlow — Accès privé"',
-      "Content-Type": "text/plain; charset=utf-8",
+      "WWW-Authenticate": 'Basic realm="NewsFlow"',
     },
   });
 }
  
-// Dit à Netlify d'appliquer cette fonction sur TOUTES les pages du site
 export const config = {
   path: "/*",
 };
