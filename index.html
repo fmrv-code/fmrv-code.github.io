@@ -1,45 +1,115 @@
 <!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ActuSearch — Actualités en temps réel</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-
-    <header>
-      <h1>⚡ ActuSearch</h1>
-      <p class="tagline">Toute l'actualité française en temps réel</p>
-      <div class="barre-recherche">
-        <input type="text" id="champ-recherche"
-          placeholder="Ex : football, technologie, politique..." />
-        <button id="bouton-recherche">Rechercher</button>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NewsFlow — Mon Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+ 
+  <!-- ===== NAVBAR ===== -->
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="navbar-logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">NewsFlow</span>
       </div>
-    </header>
-
-    <!-- Boutons de filtre par source -->
-    <div class="filtres">
-      <button class="filtre-btn actif" data-source="toutes">🌍 Toutes les sources</button>
-      <button class="filtre-btn" data-source="Franceinfo">📺 Franceinfo</button>
-      <button class="filtre-btn" data-source="Le Monde">🌍 Le Monde</button>
-      <button class="filtre-btn" data-source="Le Figaro">📰 Le Figaro</button>
-      <button class="filtre-btn" data-source="L'Équipe">⚽ L'Équipe</button>
-      <button class="filtre-btn" data-source="Frandroid">📱 Frandroid</button>
-      <button class="filtre-btn" data-source="01net">💻 01net</button>
-      <button class="filtre-btn" data-source="Libération">✊ Libération</button>
+      <div class="navbar-right">
+        <span class="navbar-date" id="navbar-date"></span>
+        <span class="navbar-counter"><span id="article-count">0</span> articles</span>
+      </div>
     </div>
-
-    <main>
-      <div id="resultats">
-        <p class="message-accueil">⚡ Tapez un sujet pour explorer l'actualité</p>
+  </header>
+ 
+  <main class="container">
+ 
+    <!-- ===== WIDGETS DASHBOARD ===== -->
+    <section class="dashboard-grid">
+ 
+      <!-- Widget Météo -->
+      <div class="widget widget-meteo" id="widget-meteo">
+        <div class="widget-header">
+          <span class="widget-icon">🌤️</span>
+          <span class="widget-label">Météo · Sens</span>
+        </div>
+        <div class="meteo-main">
+          <span class="meteo-temp" id="meteo-temp">--°</span>
+          <span class="meteo-desc" id="meteo-desc">Chargement…</span>
+        </div>
+        <div class="meteo-details">
+          <span id="meteo-humidity">💧 --%</span>
+          <span id="meteo-wind">💨 -- km/h</span>
+          <span id="meteo-feels">🌡️ Ressenti --°</span>
+        </div>
       </div>
-    </main>
-
-    <footer>
-      <p>⚡ ActuSearch 2026 — Sources : Franceinfo, Le Monde, Le Figaro, L'Équipe, Frandroid, 01net, Libération</p>
-    </footer>
-
-    <script src="script.js"></script>
-  </body>
+ 
+      <!-- Widget Briefing du jour -->
+      <div class="widget widget-briefing">
+        <div class="widget-header">
+          <span class="widget-icon">📋</span>
+          <span class="widget-label">Briefing du jour</span>
+        </div>
+        <ul class="briefing-list" id="briefing-list">
+          <li class="briefing-loading">Chargement des titres…</li>
+        </ul>
+      </div>
+ 
+      <!-- Widget Stats -->
+      <div class="widget widget-stats">
+        <div class="widget-header">
+          <span class="widget-icon">📡</span>
+          <span class="widget-label">Sources actives</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-number" id="stat-sources">0</span>
+            <span class="stat-label">Sources</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="stat-articles">0</span>
+            <span class="stat-label">Articles</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="stat-categories">6</span>
+            <span class="stat-label">Catégories</span>
+          </div>
+        </div>
+      </div>
+ 
+    </section>
+ 
+    <!-- ===== FILTRES ===== -->
+    <section class="filters" id="filters">
+      <button class="filter-btn active" data-filter="all">🌐 Tout</button>
+      <button class="filter-btn" data-filter="tech">💻 Tech</button>
+      <button class="filter-btn" data-filter="hardware">🖥️ Hardware</button>
+      <button class="filter-btn" data-filter="gaming">🎮 Gaming</button>
+      <button class="filter-btn" data-filter="actu">📰 Actu</button>
+      <button class="filter-btn" data-filter="science">🔬 Science</button>
+      <button class="filter-btn" data-filter="sport">🏃 Sport</button>
+      <button class="filter-btn" data-filter="mobilite">⚡ Mobilité</button>
+    </section>
+ 
+    <!-- ===== LOADER ===== -->
+    <div class="loader" id="loader">
+      <div class="loader-spinner"></div>
+      <p>Chargement de <span id="loader-progress">0</span> / <span id="loader-total">0</span> sources…</p>
+    </div>
+ 
+    <!-- ===== GRILLE NEWS ===== -->
+    <section class="news-grid" id="news-grid"></section>
+ 
+  </main>
+ 
+  <footer class="footer">
+    <p>NewsFlow · <span id="footer-sources">25</span> sources françaises · Hébergé sur Netlify</p>
+  </footer>
+ 
+  <script src="script.js"></script>
+</body>
 </html>
+
