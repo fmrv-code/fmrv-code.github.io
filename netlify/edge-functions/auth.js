@@ -1,60 +1,38 @@
 
-// =============================================
-// auth.js — Protection par mot de passe
-// Version corrigée pour Deno (Netlify Edge)
-// =============================================
- 
+// Protection par mot de passe — Netlify Edge Function
 export default async function auth(request, context) {
  
-  // ===== TON MOT DE PASSE ICI =====
+  // ===== CHANGE CES DEUX VALEURS =====
   const USERNAME = "FM";
-  const PASSWORD = "azerty"; // ← remplace par ton vrai mot de passe
+  const PASSWORD = "azerty"; // ← ton vrai mot de passe ici
+  // ====================================
  
-  // Récupère l'en-tête Authorization
   const authHeader = request.headers.get("Authorization");
  
-  // Fonction pour décoder le Base64 (compatible Deno)
-  function decodeBase64(str) {
-    const binary = atob(str);
-    return binary;
-  }
- 
-  // Si pas d'en-tête → demande la connexion
   if (!authHeader || !authHeader.startsWith("Basic ")) {
     return new Response("Accès refusé.", {
       status: 401,
-      headers: {
-        "WWW-Authenticate": 'Basic realm="NewsFlow"',
-      },
+      headers: { "WWW-Authenticate": 'Basic realm="NewsFlow"' },
     });
   }
  
   try {
-    // Décode les identifiants
-    const base64 = authHeader.replace("Basic ", "");
-    const decoded = decodeBase64(base64);
-    const colonIndex = decoded.indexOf(":");
-    const user = decoded.substring(0, colonIndex);
-    const pass = decoded.substring(colonIndex + 1);
+    const base64   = authHeader.replace("Basic ", "");
+    const decoded  = atob(base64);
+    const colon    = decoded.indexOf(":");
+    const user     = decoded.substring(0, colon);
+    const pass     = decoded.substring(colon + 1);
  
-    // Vérifie les identifiants
     if (user === USERNAME && pass === PASSWORD) {
       return context.next(); // ✅ Accès autorisé
     }
-  } catch (e) {
-    // Erreur de décodage
-  }
+  } catch(e) {}
  
-  // ❌ Mauvais identifiants
   return new Response("Identifiants incorrects.", {
     status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="NewsFlow"',
-    },
+    headers: { "WWW-Authenticate": 'Basic realm="NewsFlow"' },
   });
 }
  
-export const config = {
-  path: "/*",
-};
+export const config = { path: "/*" };
 
