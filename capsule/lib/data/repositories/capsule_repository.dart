@@ -1,6 +1,6 @@
-import 'package:isar/isar.dart';
+import 'package:drift/drift.dart';
 
-import '../models/capsule.dart';
+import '../datasources/app_database.dart';
 
 abstract class CapsuleRepository {
   Future<List<Capsule>> getAll();
@@ -10,27 +10,48 @@ abstract class CapsuleRepository {
   Stream<List<Capsule>> watchAll();
 }
 
-class IsarCapsuleRepository implements CapsuleRepository {
-  const IsarCapsuleRepository(this._isar);
-
-  final Isar _isar;
+class DriftCapsuleRepository implements CapsuleRepository {
+  const DriftCapsuleRepository(this._db);
+  final AppDatabase _db;
 
   @override
   Future<List<Capsule>> getAll() =>
-      _isar.capsules.where().sortByName().findAll();
+      (_db.select(_db.capsules)..orderBy([(t) => OrderingTerm.asc(t.name)]))
+          .get();
 
   @override
-  Future<Capsule?> getById(int id) => _isar.capsules.get(id);
+  Future<Capsule?> getById(int id) =>
+      (_db.select(_db.capsules)..where((t) => t.id.equals(id)))
+          .getSingleOrNull();
 
   @override
-  Future<int> save(Capsule capsule) =>
-      _isar.writeTxn(() => _isar.capsules.put(capsule));
+  Future<int> save(Capsule capsule) {
+    if (capsule.id <= 0) {
+      return _db.into(_db.capsules).insert(CapsulesCompanion.insert(
+            name: capsule.name,
+            iconCodePoint: Value(capsule.iconCodePoint),
+            colorValue: Value(capsule.colorValue),
+          ));
+    } else {
+      return (_db.update(_db.capsules)
+            ..where((t) => t.id.equals(capsule.id)))
+          .write(CapsulesCompanion(
+            name: Value(capsule.name),
+            iconCodePoint: Value(capsule.iconCodePoint),
+            colorValue: Value(capsule.colorValue),
+            noteCount: Value(capsule.noteCount),
+            updatedAt: Value(DateTime.now()),
+          ))
+          .then((_) => capsule.id);
+    }
+  }
 
   @override
   Future<void> delete(int id) =>
-      _isar.writeTxn(() => _isar.capsules.delete(id));
+      (_db.delete(_db.capsules)..where((t) => t.id.equals(id))).go();
 
   @override
   Stream<List<Capsule>> watchAll() =>
-      _isar.capsules.where().sortByName().watch(fireImmediately: true);
+      (_db.select(_db.capsules)..orderBy([(t) => OrderingTerm.asc(t.name)]))
+          .watch();
 }

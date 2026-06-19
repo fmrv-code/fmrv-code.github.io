@@ -1,16 +1,14 @@
-import 'package:isar/isar.dart';
+import 'package:flutter/material.dart';
 
-part 'tag.g.dart';
+import '../datasources/app_database.dart';
 
-@collection
-class Tag {
-  Id id = Isar.autoIncrement;
-
-  @Index(unique: true, replace: true)
-  late String name;
-
-  // Stored as ARGB int (e.g. 0xFF007AFF)
-  int colorValue = 0xFF007AFF;
-
-  DateTime createdAt = DateTime.now();
+extension TagX on Tag {
+  Color get color => Color(colorValue);
 }
+
+Tag blankTag() => Tag(
+      id: 0,
+      name: '',
+      colorValue: 0xFF007AFF,
+      createdAt: DateTime.now(),
+    );

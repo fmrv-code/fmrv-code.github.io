@@ -1,34 +1,26 @@
-import 'package:isar/isar.dart';
+import 'package:flutter/material.dart';
 
-part 'note.g.dart';
+import '../datasources/app_database.dart';
 
-@collection
-class Note {
-  Id id = Isar.autoIncrement;
-
-  @Index()
-  late String title;
-
-  String content = '';
-
-  /// null → note lives in the root (no capsule)
-  @Index()
-  int? capsuleId;
-
-  List<int> tagIds = [];
-
-  bool isPinned = false;
-  bool isFavorite = false;
-
-  @Index()
-  DateTime createdAt = DateTime.now();
-
-  DateTime updatedAt = DateTime.now();
-
-  // Derived helper — not persisted by Isar
-  @ignore
+extension NoteX on Note {
   String get excerpt {
-    final plain = content.replaceAll(RegExp(r'[#*_`>~\[\]!]'), '').trim();
+    final plain = content.replaceAll(RegExp(r'[#*`>~\[\]!]|\*+|_+'), '').trim();
     return plain.length > 120 ? '${plain.substring(0, 120)}…' : plain;
   }
 }
+
+Note blankNote({int? capsuleId}) => Note(
+      id: 0,
+      title: '',
+      content: '',
+      capsuleId: capsuleId,
+      tagIds: const [],
+      isPinned: false,
+      isFavorite: false,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+// Suppress unused import warning — Color is used by feature widgets
+// that import this file for the blankNote factory.
+const _unused = Colors.transparent;

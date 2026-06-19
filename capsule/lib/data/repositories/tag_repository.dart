@@ -1,6 +1,6 @@
-import 'package:isar/isar.dart';
+import 'package:drift/drift.dart';
 
-import '../models/tag.dart';
+import '../datasources/app_database.dart';
 
 abstract class TagRepository {
   Future<List<Tag>> getAll();
@@ -10,28 +10,43 @@ abstract class TagRepository {
   Stream<List<Tag>> watchAll();
 }
 
-class IsarTagRepository implements TagRepository {
-  const IsarTagRepository(this._isar);
-
-  final Isar _isar;
+class DriftTagRepository implements TagRepository {
+  const DriftTagRepository(this._db);
+  final AppDatabase _db;
 
   @override
   Future<List<Tag>> getAll() =>
-      _isar.tags.where().sortByName().findAll();
+      (_db.select(_db.tags)..orderBy([(t) => OrderingTerm.asc(t.name)])).get();
 
   @override
-  Future<List<Tag>> getByIds(List<int> ids) =>
-      _isar.tags.getAll(ids).then((list) => list.whereType<Tag>().toList());
+  Future<List<Tag>> getByIds(List<int> ids) {
+    if (ids.isEmpty) return Future.value([]);
+    return (_db.select(_db.tags)..where((t) => t.id.isIn(ids))).get();
+  }
 
   @override
-  Future<int> save(Tag tag) =>
-      _isar.writeTxn(() => _isar.tags.put(tag));
+  Future<int> save(Tag tag) {
+    if (tag.id <= 0) {
+      return _db.into(_db.tags).insert(TagsCompanion.insert(
+            name: tag.name,
+            colorValue: Value(tag.colorValue),
+          ));
+    } else {
+      return (_db.update(_db.tags)..where((t) => t.id.equals(tag.id)))
+          .write(TagsCompanion(
+            name: Value(tag.name),
+            colorValue: Value(tag.colorValue),
+          ))
+          .then((_) => tag.id);
+    }
+  }
 
   @override
   Future<void> delete(int id) =>
-      _isar.writeTxn(() => _isar.tags.delete(id));
+      (_db.delete(_db.tags)..where((t) => t.id.equals(id))).go();
 
   @override
   Stream<List<Tag>> watchAll() =>
-      _isar.tags.where().sortByName().watch(fireImmediately: true);
+      (_db.select(_db.tags)..orderBy([(t) => OrderingTerm.asc(t.name)]))
+          .watch();
 }

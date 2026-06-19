@@ -1,6 +1,6 @@
-import 'package:isar/isar.dart';
+import 'package:drift/drift.dart';
 
-import '../models/note.dart';
+import '../datasources/app_database.dart';
 
 abstract class NoteRepository {
   Future<List<Note>> getAll({int? capsuleId, bool? isPinned});
@@ -12,57 +12,80 @@ abstract class NoteRepository {
   Future<int> count({int? capsuleId});
 }
 
-class IsarNoteRepository implements NoteRepository {
-  const IsarNoteRepository(this._isar);
-
-  final Isar _isar;
+class DriftNoteRepository implements NoteRepository {
+  const DriftNoteRepository(this._db);
+  final AppDatabase _db;
 
   @override
   Future<List<Note>> getAll({int? capsuleId, bool? isPinned}) {
-    return _isar.notes
-        .filter()
-        .optional(capsuleId != null, (q) => q.capsuleIdEqualTo(capsuleId))
-        .optional(isPinned != null, (q) => q.isPinnedEqualTo(isPinned!))
-        .sortByCreatedAtDesc()
-        .findAll();
+    final q = _db.select(_db.notes)
+      ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
+    if (capsuleId != null) q.where((t) => t.capsuleId.equals(capsuleId));
+    if (isPinned != null) q.where((t) => t.isPinned.equals(isPinned));
+    return q.get();
   }
 
   @override
-  Future<Note?> getById(int id) => _isar.notes.get(id);
+  Future<Note?> getById(int id) =>
+      (_db.select(_db.notes)..where((t) => t.id.equals(id))).getSingleOrNull();
 
   @override
-  Future<int> save(Note note) => _isar.writeTxn(() => _isar.notes.put(note));
+  Future<int> save(Note note) {
+    if (note.id <= 0) {
+      return _db.into(_db.notes).insert(NotesCompanion.insert(
+            title: note.title,
+            content: Value(note.content),
+            capsuleId: Value(note.capsuleId),
+            tagIds: Value(note.tagIds),
+            isPinned: Value(note.isPinned),
+            isFavorite: Value(note.isFavorite),
+            createdAt: Value(note.createdAt),
+            updatedAt: Value(note.updatedAt),
+          ));
+    } else {
+      return (_db.update(_db.notes)..where((t) => t.id.equals(note.id)))
+          .write(NotesCompanion(
+            title: Value(note.title),
+            content: Value(note.content),
+            capsuleId: Value(note.capsuleId),
+            tagIds: Value(note.tagIds),
+            isPinned: Value(note.isPinned),
+            isFavorite: Value(note.isFavorite),
+            updatedAt: Value(DateTime.now()),
+          ))
+          .then((_) => note.id);
+    }
+  }
 
   @override
   Future<void> delete(int id) =>
-      _isar.writeTxn(() => _isar.notes.delete(id));
+      (_db.delete(_db.notes)..where((t) => t.id.equals(id))).go();
 
   @override
   Future<List<Note>> search(String query) {
     if (query.isEmpty) return Future.value([]);
-    return _isar.notes
-        .filter()
-        .titleContains(query, caseSensitive: false)
-        .or()
-        .contentContains(query, caseSensitive: false)
-        .sortByCreatedAtDesc()
-        .findAll();
+    return (_db.select(_db.notes)
+          ..where((t) => t.title.like('%$query%') | t.content.like('%$query%'))
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+        .get();
   }
 
   @override
   Stream<List<Note>> watchAll({int? capsuleId}) {
-    return _isar.notes
-        .filter()
-        .optional(capsuleId != null, (q) => q.capsuleIdEqualTo(capsuleId))
-        .sortByCreatedAtDesc()
-        .watch(fireImmediately: true);
+    final q = _db.select(_db.notes)
+      ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
+    if (capsuleId != null) q.where((t) => t.capsuleId.equals(capsuleId));
+    return q.watch();
   }
 
   @override
-  Future<int> count({int? capsuleId}) {
-    return _isar.notes
-        .filter()
-        .optional(capsuleId != null, (q) => q.capsuleIdEqualTo(capsuleId))
-        .count();
+  Future<int> count({int? capsuleId}) async {
+    final countCol = _db.notes.id.count();
+    final q = _db.selectOnly(_db.notes)..addColumns([countCol]);
+    if (capsuleId != null) {
+      q.where(_db.notes.capsuleId.equals(capsuleId));
+    }
+    final row = await q.getSingle();
+    return row.read(countCol) ?? 0;
   }
 }

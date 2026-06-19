@@ -1,22 +1,18 @@
-import 'package:isar/isar.dart';
+import 'package:flutter/material.dart';
 
-part 'capsule.g.dart';
+import '../datasources/app_database.dart';
 
-@collection
-class Capsule {
-  Id id = Isar.autoIncrement;
-
-  @Index()
-  late String name;
-
-  /// Material icon codepoint (e.g. Icons.folder.codePoint)
-  int iconCodePoint = 0xe2c7; // Icons.folder
-
-  /// Accent color stored as ARGB int
-  int colorValue = 0xFF007AFF;
-
-  int noteCount = 0;
-
-  DateTime createdAt = DateTime.now();
-  DateTime updatedAt = DateTime.now();
+extension CapsuleX on Capsule {
+  IconData get icon => IconData(iconCodePoint, fontFamily: 'MaterialIcons');
+  Color get color => Color(colorValue);
 }
+
+Capsule blankCapsule() => Capsule(
+      id: 0,
+      name: '',
+      iconCodePoint: Icons.folder.codePoint,
+      colorValue: 0xFF007AFF,
+      noteCount: 0,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
