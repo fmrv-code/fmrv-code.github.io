@@ -7,7 +7,7 @@ class AppShell extends StatelessWidget {
   final StatefulNavigationShell shell;
 
   static const _tabs = [
-    (icon: Icons.note_stack_outlined, activeIcon: Icons.note_stack, label: 'Notes'),
+    (icon: Icons.article_outlined, activeIcon: Icons.article, label: 'Notes'),
     (icon: Icons.link_outlined, activeIcon: Icons.link, label: 'Liens'),
     (icon: Icons.settings_outlined, activeIcon: Icons.settings, label: 'Réglages'),
   ];

@@ -67,7 +67,7 @@ class _EmptyNotesState extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.note_stack_outlined,
+                Icons.article_outlined,
                 size: 40,
                 color: cs.primary,
               ),
