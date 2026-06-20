@@ -28,13 +28,10 @@ if [ ! -d "android" ]; then
 fi
 
 # ── 3. Patch compileSdk de l'APP → 36 ────────────────────────────────────────
-APP_GRADLE_KTS="android/app/build.gradle.kts"
-APP_GRADLE_GRV="android/app/build.gradle"
-
 patch_compile_sdk() {
   local file="$1"
   if grep -qE 'compileSdk\s*(=\s*)?(36|37|38|39|40)' "$file" 2>/dev/null; then
-    echo "✓  compileSdk de l'app déjà ≥ 36"
+    echo "✓  compileSdk déjà ≥ 36"
   else
     sed -i \
       -e 's/compileSdk = flutter\.compileSdkVersion/compileSdk = 36/g' \
@@ -46,53 +43,19 @@ patch_compile_sdk() {
   fi
 }
 
-if   [ -f "$APP_GRADLE_KTS" ]; then patch_compile_sdk "$APP_GRADLE_KTS"; APP_BUILD="$APP_GRADLE_KTS"
-elif [ -f "$APP_GRADLE_GRV" ]; then patch_compile_sdk "$APP_GRADLE_GRV"; APP_BUILD="$APP_GRADLE_GRV"
+if   [ -f "android/app/build.gradle.kts" ]; then patch_compile_sdk "android/app/build.gradle.kts"
+elif [ -f "android/app/build.gradle" ];     then patch_compile_sdk "android/app/build.gradle"
 else
   echo "⚠  Aucun android/app/build.gradle[.kts] trouvé."
-  echo "   Lance : flutter create --org com.example --project-name capsule ."
   exit 1
 fi
 
-# ── 4. Désactiver checkAarMetadata (file_picker 8.x distribué avec SDK 34) ───
-# file_picker est publié sous forme d'AAR pré-compilé avec compileSdk=34.
-# flutter_plugin_android_lifecycle requiert que ses dépendants utilisent SDK≥36.
-# Ce conflit ne peut pas être résolu en recompilant — on désactive la vérification.
-if grep -q "capsule_aar_metadata_patch" "$APP_BUILD" 2>/dev/null; then
-  echo "✓  Patch checkAarMetadata déjà présent"
-else
-  if [[ "$APP_BUILD" == *.kts ]]; then
-    # Kotlin DSL
-    cat >> "$APP_BUILD" << 'KOTLIN'
-
-// capsule_aar_metadata_patch — contourne le conflit compileSdk de file_picker 8.x
-tasks.configureEach {
-    if (name.contains("checkDebugAarMetadata") || name.contains("checkReleaseAarMetadata")) {
-        enabled = false
-    }
-}
-KOTLIN
-  else
-    # Groovy DSL
-    cat >> "$APP_BUILD" << 'GROOVY'
-
-// capsule_aar_metadata_patch — contourne le conflit compileSdk de file_picker 8.x
-tasks.configureEach { task ->
-    if (task.name.contains("checkDebugAarMetadata") || task.name.contains("checkReleaseAarMetadata")) {
-        task.enabled = false
-    }
-}
-GROOVY
-  fi
-  echo "✓  $APP_BUILD — patch checkAarMetadata ajouté"
-fi
-
-# ── 5. Dépendances Flutter ────────────────────────────────────────────────────
+# ── 4. Dépendances Flutter ────────────────────────────────────────────────────
 echo ""
 flutter pub get
 echo "✓  flutter pub get OK"
 
-# ── 6. Résumé ─────────────────────────────────────────────────────────────────
+# ── 5. Résumé ─────────────────────────────────────────────────────────────────
 echo ""
 echo "✅ Tout est prêt !"
 echo ""

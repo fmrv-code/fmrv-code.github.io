@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -87,7 +86,8 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.download_rounded,
                     iconColor: cs.primary,
                     title: 'Importer une sauvegarde',
-                    subtitle: 'Restaure depuis un fichier JSON exporté.',
+                    subtitle:
+                        'Importe depuis le dossier de sync (capsule_backup.json).',
                     onTap: () => _import(context, ref),
                   ),
                   _Div(),
@@ -162,12 +162,41 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _import(BuildContext context, WidgetRef ref) async {
+    final service = BackupService(ref.read(databaseProvider));
+    final filePath = await service.syncFilePath;
+
+    if (filePath == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Impossible de trouver le dossier de sync.')),
+        );
+      }
+      return;
+    }
+
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Fichier introuvable :\n$filePath\n\nFais d\'abord un export ou configure Syncthing.'),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!context.mounted) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Importer une sauvegarde'),
-        content: const Text(
-            'Les données existantes seront fusionnées avec la sauvegarde. Continue ?'),
+        content: Text(
+            'Importer depuis :\n$filePath\n\nLes données existantes seront fusionnées. Continue ?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -182,17 +211,8 @@ class SettingsScreen extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
 
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-      );
-      if (result == null || !context.mounted) return;
-
-      final file = File(result.files.single.path!);
       final json = await file.readAsString();
-      final service = BackupService(ref.read(databaseProvider));
       final count = await service.importFromJson(json);
-
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$count notes importées avec succès.')),
@@ -270,12 +290,10 @@ class _SyncthingTile extends StatelessWidget {
                         icon: const Icon(Icons.copy_rounded, size: 18),
                         tooltip: 'Copier',
                         onPressed: () {
-                          Clipboard.setData(
-                              ClipboardData(text: folderPath));
+                          Clipboard.setData(ClipboardData(text: folderPath));
                           Navigator.pop(ctx);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Chemin copié.')),
+                            const SnackBar(content: Text('Chemin copié.')),
                           );
                         },
                       ),
