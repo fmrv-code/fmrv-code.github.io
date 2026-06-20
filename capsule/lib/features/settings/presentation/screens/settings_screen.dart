@@ -285,12 +285,15 @@ class _SyncthingTile extends StatelessWidget {
               ],
               const SizedBox(height: 16),
               const Text(
-                'Pour synchroniser avec ton PC :\n'
-                '1. Installe Syncthing sur ton téléphone (F-Droid ou Play Store)\n'
-                '2. Installe Syncthing sur ton PC (syncthing.net)\n'
-                '3. Ajoute le dossier ci-dessus dans Syncthing Android\n'
-                '4. Partage-le avec ton PC\n\n'
-                'Le fichier capsule_backup.json sera mis à jour à chaque note sauvegardée. Sur le PC, utilise "Importer" dans Réglages pour charger tes notes.',
+                'Comment synchroniser avec ton PC :\n\n'
+                '① Installe Syncthing-Fork (F-Droid) sur le téléphone\n'
+                '② Installe Syncthing sur le PC (syncthing.net)\n'
+                '③ Dans Syncthing Android :\n'
+                '   Réglages → Accès à tous les fichiers → Autoriser\n'
+                '④ Ajoute le dossier ci-dessus dans Syncthing\n'
+                '⑤ Partage-le avec ton PC\n\n'
+                'Capsule met à jour capsule_backup.json à chaque note sauvegardée.\n\n'
+                'Sur le PC, utilise "Importer une sauvegarde" dans Réglages pour charger tes notes.',
               ),
             ],
           ),
