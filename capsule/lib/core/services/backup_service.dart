@@ -11,6 +11,46 @@ class BackupService {
   const BackupService(this._db);
   final AppDatabase _db;
 
+  // ── Dossier de sync automatique ───────────────────────────────────────────
+
+  /// Dossier dans lequel Capsule écrit la sauvegarde automatiquement.
+  /// Android : /sdcard/Android/data/<pkg>/files/
+  /// Linux   : ~/Documents/Capsule/
+  Future<String?> get syncFolderPath async {
+    try {
+      if (Platform.isAndroid) {
+        final dir = await getExternalStorageDirectory();
+        return dir?.path;
+      } else {
+        final home = Platform.environment['HOME'];
+        if (home != null) return p.join(home, 'Documents', 'Capsule');
+        final docs = await getApplicationDocumentsDirectory();
+        return p.join(docs.path, 'Capsule');
+      }
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> get syncFilePath async {
+    final folder = await syncFolderPath;
+    return folder != null ? p.join(folder, 'capsule_backup.json') : null;
+  }
+
+  /// Sauvegarde silencieuse déclenchée à chaque enregistrement de note.
+  Future<void> autoBackup() async {
+    try {
+      final path = await syncFilePath;
+      if (path == null) return;
+      final dir = Directory(p.dirname(path));
+      if (!dir.existsSync()) dir.createSync(recursive: true);
+      final json = await _buildJson();
+      await File(path).writeAsString(json, flush: true);
+    } catch (_) {
+      // Silencieux : l'export manuel reste disponible
+    }
+  }
+
   // ── Export ─────────────────────────────────────────────────────────────────
 
   Future<void> exportAndShare() async {

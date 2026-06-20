@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/providers/database_provider.dart';
@@ -90,15 +91,7 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () => _import(context, ref),
                   ),
                   _Div(),
-                  _Tile(
-                    icon: Icons.sync_rounded,
-                    iconColor: cs.onSurfaceVariant,
-                    title: 'Sync automatique avec le PC',
-                    subtitle:
-                        'Installe Syncthing sur PC et téléphone, puis synchronise le dossier de sauvegarde.',
-                    trailing: Icon(Icons.open_in_new, size: 15,
-                        color: cs.onSurfaceVariant),
-                  ),
+                  _SyncthingTile(cs: cs, ref: ref),
                 ]),
                 const SizedBox(height: 32),
 
@@ -216,6 +209,102 @@ class SettingsScreen extends ConsumerWidget {
 }
 
 // ── Widgets internes ──────────────────────────────────────────────────────────
+
+class _SyncthingTile extends StatelessWidget {
+  const _SyncthingTile({required this.cs, required this.ref});
+  final ColorScheme cs;
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: BackupService(ref.read(databaseProvider)).syncFolderPath,
+      builder: (context, snapshot) {
+        final path = snapshot.data;
+        return _Tile(
+          icon: Icons.sync_rounded,
+          iconColor: cs.primary,
+          title: 'Sync automatique avec le PC',
+          subtitle: path != null
+              ? 'Dossier : $path'
+              : 'Synchronise avec Syncthing.',
+          trailing: Icon(Icons.info_outline_rounded,
+              size: 18, color: cs.onSurfaceVariant),
+          onTap: () => _showSyncDialog(context, path),
+        );
+      },
+    );
+  }
+
+  void _showSyncDialog(BuildContext context, String? folderPath) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sync avec le PC'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Capsule sauvegarde automatiquement tes données dans un fichier JSON à chaque note enregistrée.',
+              ),
+              if (folderPath != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          folderPath,
+                          style: const TextStyle(
+                              fontFamily: 'monospace', fontSize: 12),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.copy_rounded, size: 18),
+                        tooltip: 'Copier',
+                        onPressed: () {
+                          Clipboard.setData(
+                              ClipboardData(text: folderPath));
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Chemin copié.')),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              const Text(
+                'Pour synchroniser avec ton PC :\n'
+                '1. Installe Syncthing sur ton téléphone (F-Droid ou Play Store)\n'
+                '2. Installe Syncthing sur ton PC (syncthing.net)\n'
+                '3. Ajoute le dossier ci-dessus dans Syncthing Android\n'
+                '4. Partage-le avec ton PC\n\n'
+                'Le fichier capsule_backup.json sera mis à jour à chaque note sauvegardée. Sur le PC, utilise "Importer" dans Réglages pour charger tes notes.',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Compris'),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.label);

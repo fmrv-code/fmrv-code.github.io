@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/providers/database_provider.dart';
+import '../../../../../core/services/backup_service.dart';
 import '../../../../../core/theme/app_text_styles.dart';
 import '../../../../../data/datasources/app_database.dart';
 import '../widgets/markdown_toolbar.dart';
@@ -69,6 +70,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
 
     await ref.read(noteRepositoryProvider).save(note);
+    // Sauvegarde automatique silencieuse (sync Syncthing)
+    BackupService(ref.read(databaseProvider)).autoBackup();
     if (mounted) context.pop();
   }
 
