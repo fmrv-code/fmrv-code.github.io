@@ -28,7 +28,10 @@ if [ ! -d "android" ]; then
 fi
 
 # ── 3. Patch compileSdk de l'APP → 36 ────────────────────────────────────────
-patch_gradle() {
+APP_GRADLE_KTS="android/app/build.gradle.kts"
+APP_GRADLE_GRV="android/app/build.gradle"
+
+patch_compile_sdk() {
   local file="$1"
   if grep -qE 'compileSdk\s*(=\s*)?(36|37|38|39|40)' "$file" 2>/dev/null; then
     echo "✓  compileSdk de l'app déjà ≥ 36"
@@ -43,41 +46,45 @@ patch_gradle() {
   fi
 }
 
-if   [ -f "android/app/build.gradle.kts" ]; then patch_gradle "android/app/build.gradle.kts"
-elif [ -f "android/app/build.gradle" ];     then patch_gradle "android/app/build.gradle"
+if   [ -f "$APP_GRADLE_KTS" ]; then patch_compile_sdk "$APP_GRADLE_KTS"; APP_BUILD="$APP_GRADLE_KTS"
+elif [ -f "$APP_GRADLE_GRV" ]; then patch_compile_sdk "$APP_GRADLE_GRV"; APP_BUILD="$APP_GRADLE_GRV"
 else
   echo "⚠  Aucun android/app/build.gradle[.kts] trouvé."
   echo "   Lance : flutter create --org com.example --project-name capsule ."
-  echo "   Puis relance : bash setup.sh"
   exit 1
 fi
 
-# ── 4. Patch ROOT build.gradle → force compileSdk 36 pour TOUS les plugins ───
-# file_picker 8.x est lui-même compilé avec SDK 34 mais dépend d'une lib
-# qui exige SDK 36. Ce bloc applique SDK 36 à tous les sous-projets (plugins).
-ROOT_GRADLE="android/build.gradle"
-if [ -f "$ROOT_GRADLE" ]; then
-  if grep -q "capsule_compileSdk_patch" "$ROOT_GRADLE"; then
-    echo "✓  Patch plugins compileSdk déjà présent"
-  else
-    cat >> "$ROOT_GRADLE" << 'GROOVY'
+# ── 4. Désactiver checkAarMetadata (file_picker 8.x distribué avec SDK 34) ───
+# file_picker est publié sous forme d'AAR pré-compilé avec compileSdk=34.
+# flutter_plugin_android_lifecycle requiert que ses dépendants utilisent SDK≥36.
+# Ce conflit ne peut pas être résolu en recompilant — on désactive la vérification.
+if grep -q "capsule_aar_metadata_patch" "$APP_BUILD" 2>/dev/null; then
+  echo "✓  Patch checkAarMetadata déjà présent"
+else
+  if [[ "$APP_BUILD" == *.kts ]]; then
+    # Kotlin DSL
+    cat >> "$APP_BUILD" << 'KOTLIN'
 
-// capsule_compileSdk_patch — force SDK 36 pour tous les plugins Flutter
-subprojects {
-    afterEvaluate { project ->
-        if (project.plugins.hasPlugin("com.android.library") ||
-            project.plugins.hasPlugin("com.android.application")) {
-            project.android {
-                compileSdkVersion 36
-            }
-        }
+// capsule_aar_metadata_patch — contourne le conflit compileSdk de file_picker 8.x
+tasks.configureEach {
+    if (name.contains("checkDebugAarMetadata") || name.contains("checkReleaseAarMetadata")) {
+        enabled = false
+    }
+}
+KOTLIN
+  else
+    # Groovy DSL
+    cat >> "$APP_BUILD" << 'GROOVY'
+
+// capsule_aar_metadata_patch — contourne le conflit compileSdk de file_picker 8.x
+tasks.configureEach { task ->
+    if (task.name.contains("checkDebugAarMetadata") || task.name.contains("checkReleaseAarMetadata")) {
+        task.enabled = false
     }
 }
 GROOVY
-    echo "✓  android/build.gradle — patch plugins compileSdk 36 ajouté"
   fi
-else
-  echo "⚠  android/build.gradle introuvable, patch plugins ignoré"
+  echo "✓  $APP_BUILD — patch checkAarMetadata ajouté"
 fi
 
 # ── 5. Dépendances Flutter ────────────────────────────────────────────────────
