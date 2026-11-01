@@ -8,18 +8,20 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fmrv.widgetstudio.R
 import fmrv.widgetstudio.domain.model.AppInfo
-import fmrv.widgetstudio.domain.model.NoteSummary
+import fmrv.widgetstudio.domain.model.Params
 import fmrv.widgetstudio.domain.model.PinResult
-import fmrv.widgetstudio.domain.model.WidgetConfig
-import fmrv.widgetstudio.domain.model.WidgetContentType
+import fmrv.widgetstudio.domain.model.StylePreset
+import fmrv.widgetstudio.domain.model.WidgetInstance
 import fmrv.widgetstudio.domain.model.WidgetSizeOption
-import fmrv.widgetstudio.domain.model.WidgetTemplate
+import fmrv.widgetstudio.domain.model.WidgetStyle
 import fmrv.widgetstudio.domain.repository.AppIconProvider
 import fmrv.widgetstudio.domain.repository.AppsSource
-import fmrv.widgetstudio.domain.repository.ListSources
 import fmrv.widgetstudio.domain.repository.WidgetPinner
 import fmrv.widgetstudio.domain.repository.WidgetRepository
 import fmrv.widgetstudio.domain.repository.WidgetUpdater
+import fmrv.widgetstudio.kinds.KindCatalog
+import fmrv.widgetstudio.kinds.WidgetKind
+import fmrv.widgetstudio.kinds.appLabelKey
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.channels.Channel
@@ -32,24 +34,24 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class EditorUiState(
-    val config: WidgetConfig = WidgetConfig(appWidgetId = WidgetConfig.NO_ID),
+    /** `null` tant qu'aucun type de widget n'est choisi (widget posé depuis le lanceur sans modèle). */
+    val instance: WidgetInstance? = null,
+    val kind: WidgetKind<*>? = null,
     val apps: List<AppInfo> = emptyList(),
-    val previewIcon: ImageBitmap? = null,
-    val previewNotes: List<NoteSummary> = emptyList(),
     val pinSize: WidgetSizeOption = WidgetSizeOption.MEDIUM,
     val loading: Boolean = true,
 ) {
-    /** Raccourci et barre de recherche exigent une application cible, un dossier au moins une application. */
-    val canSave: Boolean
-        get() = when (config.contentType) {
-            WidgetContentType.APP_SHORTCUT, WidgetContentType.SEARCH_BAR -> config.targetPackage != null
-            WidgetContentType.APP_GRID -> config.packages.isNotEmpty()
-            else -> true
-        }
+    val needsKind: Boolean get() = !loading && instance == null
 
     /** Vrai quand le widget existe déjà sur l'écran d'accueil (édition) ; faux pour une création. */
-    val isPlaced: Boolean
-        get() = config.appWidgetId > 0
+    val isPlaced: Boolean get() = (instance?.appWidgetId ?: 0) > 0
+
+    val canSave: Boolean
+        get() {
+            val current = instance ?: return false
+            val k = kind ?: return false
+            return k.isComplete(current.params.withDefaults(k.defaultParams))
+        }
 }
 
 sealed interface EditorEvent {
@@ -67,7 +69,7 @@ class EditorViewModel @Inject constructor(
     private val icons: AppIconProvider,
     private val updater: WidgetUpdater,
     private val pinner: WidgetPinner,
-    private val sources: ListSources,
+    private val catalog: KindCatalog,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(EditorUiState())
@@ -79,138 +81,143 @@ class EditorViewModel @Inject constructor(
     private var started = false
 
     /**
-     * Initialise l'éditeur. Idempotent : peut être appelé à chaque recomposition d'effet.
-     * - [widgetId] > 0 : édition d'un widget posé (ou configuration initiale à la pose).
-     * - [widgetId] == 0 : création depuis l'application, éventuellement pour [presetPackage].
+     * Initialise l'éditeur. Idempotent.
+     * - [widgetId] > 0 : widget posé (édition, ou configuration initiale à la pose).
+     * - [widgetId] == 0 : création depuis la galerie pour le type [kindId].
+     * [presetPackage] pré-remplit le réglage "app" (depuis l'onglet Applications).
      */
-    fun start(widgetId: Int, presetPackage: String?, template: WidgetTemplate? = null) {
+    fun start(widgetId: Int, kindId: String?, presetPackage: String?) {
         if (started) return
         started = true
-
         viewModelScope.launch {
             val apps = runCatching { appsSource.loadApps() }.getOrDefault(emptyList())
             _state.update { it.copy(apps = apps) }
         }
-        template?.let { t -> _state.update { it.copy(pinSize = t.size) } }
-        viewModelScope.launch { initConfig(widgetId, presetPackage, template) }
+        viewModelScope.launch { initInstance(widgetId, kindId, presetPackage) }
     }
 
-    private suspend fun initConfig(widgetId: Int, presetPackage: String?, template: WidgetTemplate?) {
+    private suspend fun initInstance(widgetId: Int, kindId: String?, presetPackage: String?) {
         if (widgetId > 0) {
             val existing = repository.get(widgetId)
             if (existing != null) {
-                setConfig(existing)
+                setInstance(existing)
                 return
             }
             // Widget tout juste posé après un épinglage depuis l'application : on reprend la configuration en attente.
             val adopted = repository.adoptPending(widgetId)
             if (adopted != null) {
-                setConfig(adopted)
+                setInstance(adopted)
                 updater.refresh(widgetId)
                 _events.send(EditorEvent.Saved(widgetId))
                 return
             }
-            setConfig(WidgetConfig(appWidgetId = widgetId))
+            // Posé depuis le menu des widgets : l'utilisateur choisit d'abord un type.
+            pendingWidgetId = widgetId
+            _state.update { it.copy(loading = false, instance = null) }
             return
         }
 
-        var config = template?.config?.copy(appWidgetId = WidgetConfig.NO_ID) ?: WidgetConfig(appWidgetId = WidgetConfig.NO_ID)
+        val kind = kindId?.let(catalog::byId)
+        if (kind == null) {
+            _state.update { it.copy(loading = false, instance = null) }
+            return
+        }
+        var instance = newInstance(kind, WidgetInstance.NO_ID)
         if (presetPackage != null) {
             val label = appsSource.labelOf(presetPackage)
-            if (label != null) {
-                config = config.copy(targetPackage = presetPackage, targetLabel = label, name = label)
-            }
+            instance = instance.copy(
+                name = label.orEmpty(),
+                params = instance.params.with("app", presetPackage).with(appLabelKey("app"), label.orEmpty()),
+            )
         }
-        setConfig(config)
+        setInstance(instance, pinSize = kind.defaultSize)
     }
 
-    private suspend fun setConfig(config: WidgetConfig) {
-        val icon = loadIcon(config.targetPackage)
-        _state.update { it.copy(config = config, previewIcon = icon, loading = false) }
-        loadPreviewItems(config.contentType)
-    }
+    private fun newInstance(kind: WidgetKind<*>, appWidgetId: Int) = WidgetInstance(
+        appWidgetId = appWidgetId,
+        kindId = kind.id,
+        name = "",
+        style = kind.defaultStyle,
+        params = Params(kind.defaultParams),
+    )
 
-    /** Aperçu : vrais éléments si le cache en contient, sinon l'interface affichera des exemples. */
-    private suspend fun loadPreviewItems(type: WidgetContentType) {
-        val cached = try {
-            sources.forType(type)?.snapshot()?.notes.orEmpty()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            emptyList()
+    private fun setInstance(instance: WidgetInstance, pinSize: WidgetSizeOption? = null) {
+        val kind = catalog.byId(instance.kindId)
+        _state.update {
+            it.copy(
+                instance = instance,
+                kind = kind,
+                pinSize = pinSize ?: kind?.defaultSize ?: it.pinSize,
+                loading = false,
+            )
         }
-        _state.update { if (it.config.contentType == type) it.copy(previewNotes = cached) else it }
     }
 
-    private suspend fun loadIcon(packageName: String?): ImageBitmap? =
-        packageName?.let { icons.icon(it, PREVIEW_ICON_PX)?.asImageBitmap() }
+    /** Choix du type pour un widget posé depuis le lanceur. */
+    fun chooseKind(kindId: String) {
+        val kind = catalog.byId(kindId) ?: return
+        val widgetId = _state.value.instance?.appWidgetId ?: pendingWidgetId
+        setInstance(newInstance(kind, widgetId), pinSize = kind.defaultSize)
+    }
 
-    /** Icône de liste pour le sélecteur d'applications. */
+    /** Identifiant du widget posé depuis le lanceur, conservé tant qu'aucun type n'est choisi. */
+    private var pendingWidgetId: Int = WidgetInstance.NO_ID
+
+    /** Suspend car l'icône est chargée à la demande (liste des applications). */
     suspend fun iconFor(packageName: String): ImageBitmap? =
         icons.icon(packageName, LIST_ICON_PX)?.asImageBitmap()
 
-    fun update(transform: (WidgetConfig) -> WidgetConfig) {
-        val before = _state.value.config.contentType
-        _state.update { it.copy(config = transform(it.config)) }
-        val after = _state.value.config.contentType
-        if (after != before) {
-            _state.update { it.copy(previewNotes = emptyList()) }
-            viewModelScope.launch { loadPreviewItems(after) }
-        }
+    fun setName(value: String) = updateInstance { it.copy(name = value.take(MAX_NAME_LENGTH)) }
+
+    fun setStyle(transform: (WidgetStyle) -> WidgetStyle) = updateInstance { it.copy(style = transform(it.style)) }
+
+    fun applyPreset(preset: StylePreset) = setStyle(preset::applyTo)
+
+    fun setParam(key: String, value: String) = updateInstance { it.copy(params = it.params.with(key, value)) }
+
+    fun setBool(key: String, value: Boolean) = updateInstance { it.copy(params = it.params.withBool(key, value)) }
+
+    fun setPinSize(size: WidgetSizeOption) = _state.update { it.copy(pinSize = size) }
+
+    /** Choisit l'application d'un réglage et mémorise son nom ; le nom du widget suit l'application tant qu'il n'a pas été personnalisé. */
+    fun selectApp(key: String, app: AppInfo) = updateInstance { current ->
+        val previousLabel = current.params.string(appLabelKey(key))
+        val followsApp = current.name.isBlank() || current.name == previousLabel
+        current.copy(
+            name = if (followsApp) app.label else current.name,
+            params = current.params.with(key, app.packageName).with(appLabelKey(key), app.label),
+        )
     }
 
-    fun setPinSize(size: WidgetSizeOption) {
-        _state.update { it.copy(pinSize = size) }
+    fun clearApp(key: String) = updateInstance { it.copy(params = it.params.without(key).without(appLabelKey(key))) }
+
+    /** Ajoute une application à une liste (dossier) ; ignore les doublons et le dépassement de [max]. */
+    fun addToList(key: String, app: AppInfo, max: Int) = updateInstance { current ->
+        val list = current.params.list(key)
+        if (app.packageName in list || list.size >= max) current else current.copy(params = current.params.withList(key, list + app.packageName))
     }
 
-    fun selectApp(app: AppInfo) {
+    fun removeFromList(key: String, packageName: String) = updateInstance { current ->
+        current.copy(params = current.params.withList(key, current.params.list(key) - packageName))
+    }
+
+    private fun updateInstance(transform: (WidgetInstance) -> WidgetInstance) {
         _state.update { state ->
-            val previous = state.config
-            // Le nom suit l'application tant que l'utilisateur ne l'a pas personnalisé.
-            val followsApp = previous.name.isBlank() || previous.name == previous.targetLabel
-            state.copy(
-                config = previous.copy(
-                    targetPackage = app.packageName,
-                    targetLabel = app.label,
-                    name = if (followsApp) app.label else previous.name,
-                ),
-            )
+            val current = state.instance ?: return@update state
+            state.copy(instance = transform(current))
         }
-        viewModelScope.launch {
-            val icon = loadIcon(app.packageName)
-            _state.update { if (it.config.targetPackage == app.packageName) it.copy(previewIcon = icon) else it }
-        }
-    }
-
-    /** Ajoute une application au dossier ([WidgetContentType.APP_GRID]) ; ignore les doublons et le dépassement. */
-    fun addPackage(app: AppInfo) {
-        _state.update { state ->
-            val current = state.config.packages
-            if (app.packageName in current || current.size >= WidgetConfig.MAX_GRID_APPS) {
-                state
-            } else {
-                state.copy(config = state.config.copy(packages = current + app.packageName))
-            }
-        }
-    }
-
-    fun removePackage(packageName: String) {
-        _state.update { it.copy(config = it.config.copy(packages = it.config.packages - packageName)) }
-    }
-
-    fun clearApp() {
-        _state.update { it.copy(config = it.config.copy(targetPackage = null, targetLabel = null), previewIcon = null) }
     }
 
     /** Enregistre un widget déjà posé et le redessine. */
     fun save() {
-        val config = _state.value.config.normalized()
-        if (!_state.value.canSave || !_state.value.isPlaced) return
+        val state = _state.value
+        val instance = state.instance ?: return
+        if (!state.canSave || !state.isPlaced) return
         viewModelScope.launch {
             try {
-                repository.save(config)
-                updater.refresh(config.appWidgetId)
-                _events.send(EditorEvent.Saved(config.appWidgetId))
+                repository.save(instance)
+                updater.refresh(instance.appWidgetId)
+                _events.send(EditorEvent.Saved(instance.appWidgetId))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -222,11 +229,11 @@ class EditorViewModel @Inject constructor(
     /** Mémorise la configuration puis demande au lanceur d'épingler un nouveau widget. */
     fun pinToHome() {
         val state = _state.value
+        val instance = state.instance ?: return
         if (!state.canSave || state.isPlaced) return
-        val config = state.config.normalized()
         viewModelScope.launch {
             try {
-                repository.savePending(config)
+                repository.savePending(instance)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -241,14 +248,8 @@ class EditorViewModel @Inject constructor(
         }
     }
 
-    private fun WidgetConfig.normalized(): WidgetConfig = copy(
-        name = name.trim().ifEmpty { targetLabel ?: DEFAULT_NAME },
-        opacity = opacity.coerceIn(0f, 1f),
-    )
-
     private companion object {
-        const val PREVIEW_ICON_PX = 192
         const val LIST_ICON_PX = 96
-        const val DEFAULT_NAME = "Widget"
+        const val MAX_NAME_LENGTH = 40
     }
 }

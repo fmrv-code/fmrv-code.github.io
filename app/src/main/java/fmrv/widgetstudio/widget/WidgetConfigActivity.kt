@@ -64,6 +64,7 @@ class WidgetConfigActivity : ComponentActivity() {
                     EditorScreen(
                         viewModel = editorViewModel,
                         widgetId = appWidgetId,
+                        kindId = null,
                         presetPackage = null,
                         onClose = { finish() },
                         onSaved = {

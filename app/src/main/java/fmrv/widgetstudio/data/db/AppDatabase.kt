@@ -3,7 +3,7 @@ package fmrv.widgetstudio.data.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
-@Database(entities = [WidgetConfigEntity::class], version = 2, exportSchema = true)
+@Database(entities = [WidgetInstanceEntity::class], version = 3, exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun widgetConfigDao(): WidgetConfigDao
+    abstract fun widgetInstanceDao(): WidgetInstanceDao
 }

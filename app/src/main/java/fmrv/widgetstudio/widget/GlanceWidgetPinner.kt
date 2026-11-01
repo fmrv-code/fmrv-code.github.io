@@ -6,7 +6,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import androidx.glance.appwidget.GlanceAppWidgetManager
-import androidx.glance.appwidget.updateAll
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fmrv.widgetstudio.domain.model.PinResult
 import fmrv.widgetstudio.domain.model.WidgetSizeOption
@@ -14,6 +13,7 @@ import fmrv.widgetstudio.domain.repository.WidgetPinner
 import fmrv.widgetstudio.domain.repository.WidgetUpdater
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.glance.appwidget.updateAll
 
 @Singleton
 class GlanceWidgetPinner @Inject constructor(
@@ -29,6 +29,7 @@ class GlanceWidgetPinner @Inject constructor(
             WidgetSizeOption.MEDIUM -> MediumWidgetReceiver::class.java
             WidgetSizeOption.WIDE -> WideWidgetReceiver::class.java
             WidgetSizeOption.BAR -> BarWidgetReceiver::class.java
+            WidgetSizeOption.LARGE -> LargeWidgetReceiver::class.java
         }
         // Mutable : le système y ajoute l'identifiant du widget une fois posé.
         val callback = PendingIntent.getBroadcast(

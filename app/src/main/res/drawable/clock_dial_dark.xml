@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <path android:fillColor="#1C1C1E" android:pathData="M50,3 a47,47 0 1,1 0,94 a47,47 0 1,1 0,-94 z" />
+    <group android:pivotX="50" android:pivotY="50" android:rotation="0">
+        <path android:fillColor="#E8E8EA" android:pathData="M48.56,6 h2.88 v8.00 h-2.88 z" />
+    </group>
+    <group android:pivotX="50" android:pivotY="50" android:rotation="30">
+        <path android:fillColor="#E8E8EA" android:pathData="M49.20,6 h1.60 v5.00 h-1.60 z" />
+    </group>
+    <group android:pivotX="50" android:pivotY="50" android:rotation="60">
+        <path android:fillColor="#E8E8EA" android:pathData="M49.20,6 h1.60 v5.00 h-1.60 z" />
+    </group>
+    <group android:pivotX="50" android:pivotY="50" android:rotation="90">
+        <path android:fillColor="#E8E8EA" android:pathData="M48.56,6 h2.88 v8.00 h-2.88 z" />
+    </group>
+    <group android:pivotX="50" android:pivotY="50" android:rotation="120">
+        <path android:fillColor="#E8E8EA" android:pathData="M49.20,6 h1.60 v5.00 h-1.60 z" />
+    </group>
+    <group android:pivotX="50" android:pivotY="50" android:rotation="150">
+        <path android:fillColor="#E8E8EA" android:pathData="M49.20,6 h1.60 v5.00 h-1.60 z" />
+    </group>
+    <group android:pivotX="50" android:pivotY="50" android:rotation="180">
+        <path android:fillColor="#E8E8EA" android:pathData="M48.56,6 h2.88 v8.00 h-2.88 z" />
+    </group>
+    <group android:pivotX="50" android:pivotY="50" android:rotation="210">
+        <path android:fillColor="#E8E8EA" android:pathData="M49.20,6 h1.60 v5.00 h-1.60 z" />
+    </group>
+    <group android:pivotX="50" android:pivotY="50" android:rotation="240">
+        <path android:fillColor="#E8E8EA" android:pathData="M49.20,6 h1.60 v5.00 h-1.60 z" />
+    </group>
+    <group android:pivotX="50" android:pivotY="50" android:rotation="270">
+        <path android:fillColor="#E8E8EA" android:pathData="M48.56,6 h2.88 v8.00 h-2.88 z" />
+    </group>
+    <group android:pivotX="50" android:pivotY="50" android:rotation="300">
+        <path android:fillColor="#E8E8EA" android:pathData="M49.20,6 h1.60 v5.00 h-1.60 z" />
+    </group>
+    <group android:pivotX="50" android:pivotY="50" android:rotation="330">
+        <path android:fillColor="#E8E8EA" android:pathData="M49.20,6 h1.60 v5.00 h-1.60 z" />
+    </group>
+</vector>

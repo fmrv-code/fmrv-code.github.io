@@ -5,22 +5,28 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
-import fmrv.widgetstudio.domain.repository.AppIconProvider
-import fmrv.widgetstudio.domain.repository.ListSources
+import fmrv.widgetstudio.domain.repository.MailRepository
+import fmrv.widgetstudio.domain.repository.NewsRepository
+import fmrv.widgetstudio.domain.repository.NotesRepository
 import fmrv.widgetstudio.domain.repository.WidgetRepository
 import fmrv.widgetstudio.domain.repository.WidgetUpdater
+import fmrv.widgetstudio.render.AssetProvider
 
-/** Accès Hilt pour les composants instanciés par le système (receivers, Glance). */
+/** Accès Hilt pour les composants instanciés par le système (récepteurs, Glance) et pour les types de widgets. */
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface WidgetEntryPoint {
     fun widgetRepository(): WidgetRepository
 
-    fun iconProvider(): AppIconProvider
-
     fun widgetUpdater(): WidgetUpdater
 
-    fun listSources(): ListSources
+    fun assetProvider(): AssetProvider
+
+    fun notesRepository(): NotesRepository
+
+    fun newsRepository(): NewsRepository
+
+    fun mailRepository(): MailRepository
 }
 
 fun Context.widgetEntryPoint(): WidgetEntryPoint =

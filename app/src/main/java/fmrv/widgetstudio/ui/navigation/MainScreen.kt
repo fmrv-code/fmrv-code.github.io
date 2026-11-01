@@ -33,7 +33,6 @@ import fmrv.widgetstudio.ui.components.FloatingNavBar
 import fmrv.widgetstudio.ui.components.NavItem
 import fmrv.widgetstudio.ui.editor.EditorScreen
 import fmrv.widgetstudio.ui.gallery.GalleryScreen
-import fmrv.widgetstudio.ui.gallery.Templates
 import fmrv.widgetstudio.ui.home.HomeScreen
 import fmrv.widgetstudio.ui.settings.SettingsScreen
 import fmrv.widgetstudio.viewmodel.EditorViewModel
@@ -43,16 +42,16 @@ object Routes {
     const val HOME = "home"
     const val APPS = "apps"
     const val SETTINGS = "settings"
-    const val EDITOR = "editor?id={id}&pkg={pkg}&tpl={tpl}"
+    const val EDITOR = "editor?id={id}&pkg={pkg}&kind={kind}"
 
     private const val ARG_ID = "id"
     private const val ARG_PKG = "pkg"
-    private const val ARG_TPL = "tpl"
+    private const val ARG_KIND = "kind"
 
-    fun editor(widgetId: Int = 0, packageName: String? = null, templateId: String? = null): String = buildString {
+    fun editor(widgetId: Int = 0, packageName: String? = null, kindId: String? = null): String = buildString {
         append("editor?$ARG_ID=$widgetId")
         if (packageName != null) append("&$ARG_PKG=${Uri.encode(packageName)}")
-        if (templateId != null) append("&$ARG_TPL=${Uri.encode(templateId)}")
+        if (kindId != null) append("&$ARG_KIND=${Uri.encode(kindId)}")
     }
 }
 
@@ -103,7 +102,7 @@ fun MainScreen() {
             popExitTransition = { fadeOut(tween(160)) + slideOutVertically(tween(260)) { it / 14 } },
         ) {
             composable(Routes.GALLERY) {
-                GalleryScreen(onTemplate = { template -> navController.navigate(Routes.editor(templateId = template.id)) })
+                GalleryScreen(onKind = { kind -> navController.navigate(Routes.editor(kindId = kind.id)) })
             }
             composable(Routes.HOME) {
                 HomeScreen(
@@ -118,7 +117,7 @@ fun MainScreen() {
                 )
             }
             composable(Routes.APPS) {
-                AppsScreen(onAppSelected = { pkg -> navController.navigate(Routes.editor(packageName = pkg, templateId = "icon")) })
+                AppsScreen(onAppSelected = { pkg -> navController.navigate(Routes.editor(packageName = pkg, kindId = "app.icon")) })
             }
             composable(Routes.SETTINGS) { SettingsScreen() }
             composable(
@@ -133,7 +132,7 @@ fun MainScreen() {
                         nullable = true
                         defaultValue = null
                     },
-                    navArgument("tpl") {
+                    navArgument("kind") {
                         type = NavType.StringType
                         nullable = true
                         defaultValue = null
@@ -145,7 +144,7 @@ fun MainScreen() {
                     viewModel = viewModel,
                     widgetId = entry.arguments?.getInt("id") ?: 0,
                     presetPackage = entry.arguments?.getString("pkg"),
-                    template = Templates.byId(entry.arguments?.getString("tpl")),
+                    kindId = entry.arguments?.getString("kind"),
                     onClose = { navController.popBackStack() },
                     onSaved = { navController.popBackStack() },
                 )

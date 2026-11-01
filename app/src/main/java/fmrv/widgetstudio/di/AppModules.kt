@@ -8,10 +8,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import fmrv.widgetstudio.data.apps.AppAssetProvider
 import fmrv.widgetstudio.data.apps.AppIconLoader
 import fmrv.widgetstudio.data.apps.InstalledAppsSource
 import fmrv.widgetstudio.data.db.AppDatabase
-import fmrv.widgetstudio.data.db.WidgetConfigDao
+import fmrv.widgetstudio.data.db.WidgetInstanceDao
 import fmrv.widgetstudio.data.feed.FeedFetcher
 import fmrv.widgetstudio.data.feed.FeedUrls
 import fmrv.widgetstudio.data.feed.HttpFeedFetcher
@@ -27,17 +28,18 @@ import fmrv.widgetstudio.data.joplin.RemoteFiles
 import fmrv.widgetstudio.data.mail.ImapMailSource
 import fmrv.widgetstudio.data.mail.MailRepositoryImpl
 import fmrv.widgetstudio.data.mail.MailSource
-import fmrv.widgetstudio.data.repository.ListSourcesImpl
 import fmrv.widgetstudio.data.repository.WidgetRepositoryImpl
 import fmrv.widgetstudio.domain.repository.AppIconProvider
+import fmrv.widgetstudio.kinds.DefaultKindCatalog
+import fmrv.widgetstudio.kinds.KindCatalog
 import fmrv.widgetstudio.domain.repository.AppsSource
-import fmrv.widgetstudio.domain.repository.ListSources
 import fmrv.widgetstudio.domain.repository.MailRepository
 import fmrv.widgetstudio.domain.repository.NewsRepository
 import fmrv.widgetstudio.domain.repository.NotesRepository
 import fmrv.widgetstudio.domain.repository.WidgetPinner
 import fmrv.widgetstudio.domain.repository.WidgetRepository
 import fmrv.widgetstudio.domain.repository.WidgetUpdater
+import fmrv.widgetstudio.render.AssetProvider
 import fmrv.widgetstudio.widget.GlanceWidgetPinner
 import fmrv.widgetstudio.widget.GlanceWidgetUpdater
 import javax.inject.Singleton
@@ -63,7 +65,7 @@ object DatabaseModule {
     }
 
     @Provides
-    fun provideWidgetConfigDao(database: AppDatabase): WidgetConfigDao = database.widgetConfigDao()
+    fun provideWidgetInstanceDao(database: AppDatabase): WidgetInstanceDao = database.widgetInstanceDao()
 }
 
 @Module
@@ -74,6 +76,10 @@ abstract class BindingsModule {
     @Binds abstract fun bindAppsSource(impl: InstalledAppsSource): AppsSource
 
     @Binds abstract fun bindAppIconProvider(impl: AppIconLoader): AppIconProvider
+
+    @Binds abstract fun bindAssetProvider(impl: AppAssetProvider): AssetProvider
+
+    @Binds abstract fun bindKindCatalog(impl: DefaultKindCatalog): KindCatalog
 
     @Binds abstract fun bindWidgetPinner(impl: GlanceWidgetPinner): WidgetPinner
 
@@ -96,6 +102,4 @@ abstract class BindingsModule {
     @Binds abstract fun bindMailRepository(impl: MailRepositoryImpl): MailRepository
 
     @Binds abstract fun bindMailSource(impl: ImapMailSource): MailSource
-
-    @Binds abstract fun bindListSources(impl: ListSourcesImpl): ListSources
 }

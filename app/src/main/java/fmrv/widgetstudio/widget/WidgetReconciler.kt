@@ -21,6 +21,7 @@ class WidgetReconciler @Inject constructor(
             MediumWidgetReceiver::class.java,
             WideWidgetReceiver::class.java,
             BarWidgetReceiver::class.java,
+            LargeWidgetReceiver::class.java,
         ).flatMap { manager.getAppWidgetIds(ComponentName(context, it)).toList() }.toSet()
         repository.retainOnly(placed)
     }

@@ -1,58 +1,50 @@
 # Widget Studio
 
-Application Android native (Kotlin, Jetpack Compose, Jetpack Glance) pour créer et personnaliser des widgets d'écran d'accueil, avec les codes visuels de One UI (Samsung). Interface en français.
+Application Android native (Kotlin, Jetpack Compose, Jetpack Glance) pour créer des widgets d'écran d'accueil dans le style One UI de Samsung, avec un catalogue de modèles façon « galerie ». Interface en français.
 
-## Fonctionnalités
+## Catalogue
 
-**Galerie de modèles** (écran d'accueil de l'application) : on choisit un modèle dans le style One UI, on le personnalise avec un aperçu en direct, puis on l'ajoute à l'écran d'accueil.
+| Rubrique | Widgets |
+|---|---|
+| **Horloges** | numérique, empilée (heures/minutes en grand), à aiguilles (4 cadrans), mondiale (3 villes) |
+| **Calendriers et dates** | calendrier du mois, semaine, grande date, compte à rebours, progression (jour, semaine, mois, année) |
+| **Applications** | icône, pilule, dossier (8 apps), barre de recherche |
+| **Informations** | Franceinfo, notes Joplin, Gmail |
+| **Appareil** | entretien de l'appareil (stockage, mémoire, batterie) |
 
-- **Icône** · **Pilule** (grande pastille ronde + libellé) · **Dossier d'applications** (jusqu'à 8 icônes en grille) · **Barre de recherche**
-- **Entretien de l'appareil** : stockage libre, mémoire disponible, batterie, avec jauges ; le bouton rond ouvre l'entretien de l'appareil Samsung (ou les réglages de stockage)
-- **Horloge et date**, **Franceinfo**, **Notes Joplin**, **Gmail** (voir plus bas)
-- **Styles prédéfinis** : Bleu nuit, Corail, Verre clair / sombre, Lavande, Menthe, Noir, Blanc, Bleu One UI, Sans fond ; fonds **uni, dégradé ou verre** (translucide), couleur d'accent, transparence, forme, police.
-
-Limite connue : un widget ne peut pas flouter le fond d'écran. Le « verre » est un dégradé translucide qui s'en approche.
-
-- **Raccourci d'application** : un widget qui lance n'importe quelle application installée.
-- **Horloge et date** : heure animée par le système (sans réveiller l'application), format 12 / 24 h, date optionnelle. Un appui peut ouvrir une application au choix.
-- **Franceinfo** : les gros titres « À la une » (flux RSS public, sans compte). Un appui ouvre l'article.
-- **Gmail** : vos e-mails non lus (expéditeur, objet), en lecture seule. Voir ci-dessous.
-- **Notes Joplin** : liste des notes récentes de Joplin (qui n'a pas de widget), lue depuis OneDrive. Voir ci-dessous.
-- **Éditeur visuel** avec aperçu en temps réel : type, application, nom, taille, forme (carré, arrondi, capsule), couleurs du fond et du texte, transparence, police.
-- **Deux façons d'ajouter un widget** : depuis l'application (« Ajouter à l'écran d'accueil », épinglage système) ou depuis le menu des widgets du lanceur (« Widget Studio » → l'éditeur s'ouvre à la pose).
-- **Mode sombre** : suivre le système, clair, sombre ou noir pur AMOLED ; couleurs dynamiques (Android 12+) en option.
-- **One UI** : coins très arrondis, cartes flottantes, grands titres qui se replient, barre de navigation flottante, commandes principales dans la moitié basse de l'écran, retours haptiques discrets (désactivables).
+Chaque widget se personnalise avec un **aperçu fidèle** : style prédéfini (Bleu nuit, Corail, Verre clair/sombre, Lavande, Menthe, Noir, Blanc, Bleu One UI, Sans fond), fond uni, dégradé ou verre, couleurs, transparence, forme, police et réglages propres au widget. Limite : un widget ne peut pas flouter le fond d'écran ; le « verre » est un dégradé translucide.
 
 ## Architecture
 
-MVVM avec séparation domaine / données / UI, injection avec Hilt.
+Un widget est **un type + un style + des paramètres**. Le type décrit son contenu **une seule fois** sous forme d'arbre d'éléments (`render/Node.kt`) ; deux moteurs le dessinent : Glance sur l'écran d'accueil (`widget/GlanceRenderer.kt`) et Compose dans l'application (`ui/preview/ComposeRenderer.kt`). L'aperçu est donc identique au widget réel, et un nouveau widget ne s'écrit qu'une fois, en Kotlin pur testable sur JVM.
 
 ```
 app/src/main/java/fmrv/widgetstudio/
-├── domain/      modèles (WidgetConfig…) et interfaces de repository
-├── data/        Room (configs de widgets), DataStore (réglages), liste des apps, chargement des icônes
-├── di/          modules Hilt
-├── viewmodel/   un ViewModel par écran, état exposé en StateFlow
-├── ui/          thème One UI, composants, écrans (home, apps, settings, editor), navigation
-└── widget/      UniversalWidget (Glance), receivers, activité de configuration, épinglage, worker
+├── domain/    modèles (WidgetInstance, WidgetStyle, Params), styles prédéfinis, interfaces
+├── render/    arbre d'éléments (Node), couleurs, chargement d'images
+├── kinds/     un fichier par famille : clocks/, calendar/, apps/, device/, feeds/ ; Kinds.kt = le catalogue
+├── data/      Room (instances en JSON), DataStore, apps, Joplin/OneDrive, Franceinfo, Gmail
+├── widget/    UniversalWidget (Glance), récepteurs, configuration, épinglage, actualisation
+├── ui/        thème One UI, galerie, éditeur généré, aperçu, réglages
+└── viewmodel/
 ```
+
+**Ajouter un type de widget** : créer un objet qui implémente `WidgetKind` (déclare ses champs de réglage, charge ses données, produit son arbre), puis l'ajouter à `Kinds.all`. La galerie, l'éditeur et l'aperçu s'adaptent seuls.
 
 ### Fonctionnement des widgets
 
-Android impose de déclarer chaque type de widget dans le manifeste : on ne peut pas en créer un nouveau par application. Widget Studio utilise donc **un seul `GlanceAppWidget` générique** (`UniversalWidget`), exposé en trois tailles (petit 1×1, moyen 2×2, large 4×2). Chaque widget posé reçoit un identifiant du système (`appWidgetId`) auquel est associée une `WidgetConfig` stockée dans Room.
+Android impose de déclarer chaque type de fournisseur dans le manifeste : on ne peut pas en créer un nouveau par widget. Widget Studio utilise donc **un seul `GlanceAppWidget`** exposé en cinq tailles (1×1, 2×2, 4×2, 4×1, 4×4). Chaque widget posé reçoit un identifiant du système auquel est associée une configuration stockée dans Room.
 
-- À la pose, le lanceur ouvre `WidgetConfigActivity` (`android:configure`). Tant que la configuration n'est pas enregistrée, le résultat reste `RESULT_CANCELED` et le lanceur retire le widget.
-- Pour l'épinglage depuis l'application, la configuration est mise « en attente » (5 minutes maximum) puis attribuée au widget pose par l'activité de configuration, ou à défaut par `PinResultReceiver`.
-- Les configurations des widgets supprimés sont nettoyées (`onDeleted` + réconciliation au démarrage).
-- Un `WorkManager` périodique (6 h, batterie non faible) rafraîchit les icônes. Aucune alarme exacte, aucune permission spéciale.
+- À la pose, le lanceur ouvre `WidgetConfigActivity`. Tant que la configuration n'est pas enregistrée, le résultat reste `RESULT_CANCELED` et le lanceur retire le widget.
+- Pour l'épinglage depuis l'application, la configuration est « en attente » (5 minutes maximum) puis attribuée au widget posé.
+- Redessin : toutes les 30 minutes et juste après minuit (le jour courant d'un calendrier change sans ouvrir l'application) ; les sources distantes (notes, actualités, e-mails) toutes les ~30 minutes si le réseau est disponible.
+- Les horloges sont animées par le système (`TextClock`, `AnalogClock`) sans réveiller l'application.
 
 ### Compatibilité
 
-- `minSdk 30` (Android 11), `targetSdk 35`.
-- Android 12+ : coins arrondis natifs (`cornerRadius`). Android 11 : repli par forme vectorielle teintée (le rayon est alors étiré avec le widget).
-- Les polices personnalisées ne sont pas possibles dans un widget (RemoteViews) : le choix se limite aux familles système (standard, serif, monospace, manuscrite). Sur Samsung, « standard » correspond à One UI Sans.
-- Liste des applications via `<queries>` sur l'intent LAUNCHER : aucune permission `QUERY_ALL_PACKAGES`.
-- Unique permission : `INTERNET`, utilisée uniquement pour les widgets de liste que vous créez (notes Joplin via OneDrive, actualités Franceinfo, e-mails Gmail). Sans widget de ce type, aucune requête réseau n'est émise.
+- `minSdk 30` (Android 11), `targetSdk 35`. Android 12+ : coins arrondis natifs ; Android 11 : repli par forme vectorielle teintée.
+- Les polices personnalisées sont impossibles dans un widget : quatre familles système (sur Samsung, « Standard » = One UI Sans).
+- Aucune permission demandée, sauf `INTERNET`, utilisée uniquement par les widgets qui lisent un service (Joplin via OneDrive, Franceinfo, Gmail).
 
 ## Widget de notes Joplin (OneDrive)
 

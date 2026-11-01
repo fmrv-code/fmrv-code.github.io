@@ -3,28 +3,28 @@ package fmrv.widgetstudio.domain.repository
 import android.graphics.Bitmap
 import fmrv.widgetstudio.domain.model.AppInfo
 import fmrv.widgetstudio.domain.model.PinResult
-import fmrv.widgetstudio.domain.model.WidgetConfig
+import fmrv.widgetstudio.domain.model.WidgetInstance
 import fmrv.widgetstudio.domain.model.WidgetSizeOption
 import kotlinx.coroutines.flow.Flow
 
 interface WidgetRepository {
     /** Widgets actuellement configurés (hors configuration en attente). */
-    fun observeWidgets(): Flow<List<WidgetConfig>>
+    fun observeWidgets(): Flow<List<WidgetInstance>>
 
-    suspend fun get(appWidgetId: Int): WidgetConfig?
+    suspend fun get(appWidgetId: Int): WidgetInstance?
 
-    suspend fun save(config: WidgetConfig)
+    suspend fun save(instance: WidgetInstance)
 
     suspend fun delete(appWidgetId: Int)
 
     /** Mémorise la configuration à attribuer au prochain widget épinglé. */
-    suspend fun savePending(config: WidgetConfig)
+    suspend fun savePending(instance: WidgetInstance)
 
     /**
      * Attribue la configuration en attente (si elle existe et n'a pas expiré) au widget [appWidgetId].
      * Retourne `null` si ce widget est déjà configuré ou s'il n'y a rien à attribuer.
      */
-    suspend fun adoptPending(appWidgetId: Int): WidgetConfig?
+    suspend fun adoptPending(appWidgetId: Int): WidgetInstance?
 
     /** Supprime les configurations dont le widget n'existe plus sur l'écran d'accueil. */
     suspend fun retainOnly(appWidgetIds: Set<Int>)

@@ -2,24 +2,27 @@ package fmrv.widgetstudio.viewmodel
 
 import android.graphics.Bitmap
 import fmrv.widgetstudio.R
-import fmrv.widgetstudio.data.FakeWidgetConfigDao
+import fmrv.widgetstudio.data.FakeWidgetInstanceDao
 import fmrv.widgetstudio.data.repository.WidgetRepositoryImpl
 import fmrv.widgetstudio.domain.model.AppInfo
-import fmrv.widgetstudio.domain.model.NoteSummary
-import fmrv.widgetstudio.domain.model.NotesSnapshot
-import fmrv.widgetstudio.domain.model.RefreshResult
+import fmrv.widgetstudio.domain.model.BackgroundStyle
+import fmrv.widgetstudio.domain.model.Params
 import fmrv.widgetstudio.domain.model.PinResult
-import fmrv.widgetstudio.domain.model.TemplateSection
-import fmrv.widgetstudio.domain.model.WidgetTemplate
-import fmrv.widgetstudio.domain.model.WidgetConfig
-import fmrv.widgetstudio.domain.model.WidgetContentType
+import fmrv.widgetstudio.domain.model.StylePresets
+import fmrv.widgetstudio.domain.model.WidgetFont
+import fmrv.widgetstudio.domain.model.WidgetInstance
+import fmrv.widgetstudio.domain.model.WidgetShape
 import fmrv.widgetstudio.domain.model.WidgetSizeOption
 import fmrv.widgetstudio.domain.repository.AppIconProvider
 import fmrv.widgetstudio.domain.repository.AppsSource
-import fmrv.widgetstudio.domain.repository.ItemsRepository
-import fmrv.widgetstudio.domain.repository.ListSources
 import fmrv.widgetstudio.domain.repository.WidgetPinner
 import fmrv.widgetstudio.domain.repository.WidgetUpdater
+import fmrv.widgetstudio.kinds.KindCatalog
+import fmrv.widgetstudio.kinds.WidgetKind
+import fmrv.widgetstudio.kinds.apps.AppFolderKind
+import fmrv.widgetstudio.kinds.apps.AppIconKind
+import fmrv.widgetstudio.kinds.calendar.CountdownKind
+import fmrv.widgetstudio.kinds.clocks.DigitalClockKind
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -48,16 +51,6 @@ class EditorViewModelTest {
         override suspend fun icon(packageName: String, sizePx: Int): Bitmap? = null
     }
 
-    private class FakeNotes(private val cached: List<NoteSummary> = emptyList()) : ItemsRepository {
-        override suspend fun snapshot() = NotesSnapshot(connected = true, notes = cached, refreshedAtMillis = 1L)
-        override suspend fun refresh(): RefreshResult = RefreshResult.Success(cached.size)
-        override suspend fun clear() = Unit
-    }
-
-    private class FakeSources(private val cached: List<NoteSummary>) : ListSources {
-        override fun forType(type: WidgetContentType): ItemsRepository? = if (type.isList) FakeNotes(cached) else null
-    }
-
     private class RecordingUpdater : WidgetUpdater {
         val refreshed = mutableListOf<Int>()
         override suspend fun refresh(appWidgetId: Int) {
@@ -74,20 +67,25 @@ class EditorViewModelTest {
         }
     }
 
+    private val catalog = object : KindCatalog {
+        override val all: List<WidgetKind<*>> = listOf(DigitalClockKind, CountdownKind, AppIconKind, AppFolderKind)
+        override fun byId(id: String) = all.firstOrNull { it.id == id }
+    }
+
     private val chrome = AppInfo("com.android.chrome", "Chrome")
     private val maps = AppInfo("com.google.maps", "Maps")
 
-    private val repository = WidgetRepositoryImpl(FakeWidgetConfigDao())
+    private val repository = WidgetRepositoryImpl(FakeWidgetInstanceDao())
     private val updater = RecordingUpdater()
     private val pinner = FakePinner()
 
-    private fun viewModel(cachedNotes: List<NoteSummary> = emptyList()) = EditorViewModel(
+    private fun viewModel() = EditorViewModel(
         repository = repository,
         appsSource = FakeApps(listOf(chrome, maps)),
         icons = NoIcons(),
         updater = updater,
         pinner = pinner,
-        sources = FakeSources(cachedNotes),
+        catalog = catalog,
     )
 
     @BeforeTest
@@ -101,32 +99,117 @@ class EditorViewModelTest {
     }
 
     @Test
-    fun `une creation pour une application pre-remplit la cible et le nom`() {
+    fun `une creation demarre avec le style, les reglages et la taille du type`() {
         val vm = viewModel()
-        vm.start(widgetId = 0, presetPackage = chrome.packageName)
+        vm.start(widgetId = 0, kindId = "clock.digital", presetPackage = null)
 
         val state = vm.state.value
         assertFalse(state.loading)
-        assertEquals(chrome.packageName, state.config.targetPackage)
-        assertEquals("Chrome", state.config.name)
-        assertTrue(state.canSave)
+        assertEquals("clock.digital", state.instance?.kindId)
+        assertEquals(DigitalClockKind.defaultStyle, state.instance?.style)
+        assertEquals("1", state.instance?.params?.string("h24"))
+        assertEquals(DigitalClockKind.defaultSize, state.pinSize)
         assertFalse(state.isPlaced)
+        assertTrue(state.canSave)
     }
 
     @Test
-    fun `un raccourci sans application ne peut pas etre enregistre mais l'horloge le peut`() {
+    fun `un type inconnu ou absent demande de choisir un type`() {
         val vm = viewModel()
-        vm.start(widgetId = 0, presetPackage = null)
-
+        vm.start(widgetId = 0, kindId = "nexiste.pas", presetPackage = null)
+        assertTrue(vm.state.value.needsKind)
         assertFalse(vm.state.value.canSave)
-        vm.update { it.copy(contentType = WidgetContentType.CLOCK_DATE) }
+    }
+
+    @Test
+    fun `un compte a rebours n'est enregistrable qu'avec une date valide`() {
+        val vm = viewModel()
+        vm.start(0, "calendar.countdown", null)
+        assertFalse(vm.state.value.canSave)
+
+        vm.setParam("date", "2026-12-25")
+
         assertTrue(vm.state.value.canSave)
     }
 
     @Test
-    fun `pinToHome sans application ne demande rien au lanceur`() {
+    fun `une icone pour une application pre-remplit l'application, son nom et le nom du widget`() {
         val vm = viewModel()
-        vm.start(widgetId = 0, presetPackage = null)
+        vm.start(0, "app.icon", presetPackage = chrome.packageName)
+
+        val instance = assertNotNull(vm.state.value.instance)
+        assertEquals(chrome.packageName, instance.params.string("app"))
+        assertEquals("Chrome", instance.params.string("app_label"))
+        assertEquals("Chrome", instance.name)
+        assertTrue(vm.state.value.canSave)
+    }
+
+    @Test
+    fun `changer d'application conserve un nom personnalise mais suit sinon l'application`() {
+        val vm = viewModel()
+        vm.start(0, "app.icon", presetPackage = chrome.packageName)
+
+        vm.selectApp("app", maps)
+        assertEquals("Maps", vm.state.value.instance?.name)
+
+        vm.setName("Mon trajet")
+        vm.selectApp("app", chrome)
+        assertEquals("Mon trajet", vm.state.value.instance?.name)
+        assertEquals(chrome.packageName, vm.state.value.instance?.params?.string("app"))
+    }
+
+    @Test
+    fun `un dossier exige au moins une application et plafonne a huit sans doublon`() {
+        val vm = viewModel()
+        vm.start(0, "app.folder", null)
+        assertFalse(vm.state.value.canSave)
+
+        repeat(12) { vm.addToList("apps", AppInfo("pkg.n$it", "App $it"), WidgetInstance.MAX_FOLDER_APPS) }
+        vm.addToList("apps", AppInfo("pkg.n0", "App 0"), WidgetInstance.MAX_FOLDER_APPS)
+
+        val apps = assertNotNull(vm.state.value.instance).params.list("apps")
+        assertEquals(WidgetInstance.MAX_FOLDER_APPS, apps.size)
+        assertEquals("pkg.n0", apps.first())
+        assertTrue(vm.state.value.canSave)
+
+        vm.removeFromList("apps", "pkg.n0")
+        assertFalse("pkg.n0" in assertNotNull(vm.state.value.instance).params.list("apps"))
+    }
+
+    @Test
+    fun `un style predefini remplace les couleurs mais garde la forme et la police`() {
+        val vm = viewModel()
+        vm.start(0, "clock.digital", null)
+        vm.setStyle { it.copy(shape = WidgetShape.PILL, font = WidgetFont.SERIF) }
+
+        vm.applyPreset(StylePresets.Coral)
+
+        val style = assertNotNull(vm.state.value.instance).style
+        assertEquals(BackgroundStyle.GRADIENT, style.background)
+        assertEquals(StylePresets.Coral.style.colorStart, style.colorStart)
+        assertEquals(WidgetShape.PILL, style.shape)
+        assertEquals(WidgetFont.SERIF, style.font)
+        assertTrue(StylePresets.Coral.isAppliedTo(style))
+    }
+
+    @Test
+    fun `pinToHome memorise la configuration en attente et demande l'epinglage a la taille choisie`() = runTest {
+        val vm = viewModel()
+        vm.start(0, "clock.digital", null)
+        vm.setPinSize(WidgetSizeOption.WIDE)
+
+        vm.pinToHome()
+
+        assertEquals(listOf(WidgetSizeOption.WIDE), pinner.requestedSizes)
+        assertEquals(EditorEvent.PinRequested, vm.events.first())
+        val adopted = assertNotNull(repository.adoptPending(77))
+        assertEquals("clock.digital", adopted.kindId)
+    }
+
+    @Test
+    fun `pinToHome sans reglage indispensable ne demande rien au lanceur`() {
+        val vm = viewModel()
+        vm.start(0, "calendar.countdown", null)
 
         vm.pinToHome()
 
@@ -134,25 +217,10 @@ class EditorViewModelTest {
     }
 
     @Test
-    fun `pinToHome memorise la configuration en attente et demande l'epinglage`() = runTest {
-        val vm = viewModel()
-        vm.start(widgetId = 0, presetPackage = chrome.packageName)
-        vm.setPinSize(WidgetSizeOption.WIDE)
-
-        vm.pinToHome()
-
-        assertEquals(listOf(WidgetSizeOption.WIDE), pinner.requestedSizes)
-        assertEquals(EditorEvent.PinRequested, vm.events.first())
-        val adopted = repository.adoptPending(77)
-        assertNotNull(adopted)
-        assertEquals(chrome.packageName, adopted.targetPackage)
-    }
-
-    @Test
     fun `un lanceur sans epinglage direct produit un message d'erreur`() = runTest {
         pinner.result = PinResult.UNSUPPORTED
         val vm = viewModel()
-        vm.start(widgetId = 0, presetPackage = chrome.packageName)
+        vm.start(0, "clock.digital", null)
 
         vm.pinToHome()
 
@@ -161,192 +229,58 @@ class EditorViewModelTest {
 
     @Test
     fun `save enregistre un widget pose, le redessine et le signale`() = runTest {
-        repository.save(WidgetConfig(appWidgetId = 5, name = "Ancien", targetPackage = chrome.packageName, targetLabel = "Chrome"))
+        repository.save(WidgetInstance(5, "clock.digital", "Ancien", params = Params(mapOf("h24" to "1"))))
         val vm = viewModel()
-        vm.start(widgetId = 5, presetPackage = null)
+        vm.start(widgetId = 5, kindId = null, presetPackage = null)
         assertTrue(vm.state.value.isPlaced)
 
-        vm.update { it.copy(name = "  Navigation  ", opacity = 0.5f) }
+        vm.setBool("h24", false)
+        vm.setName("Horloge du salon")
         vm.save()
 
         assertEquals(EditorEvent.Saved(5), vm.events.first())
-        assertEquals("Navigation", repository.get(5)?.name)
-        assertEquals(0.5f, repository.get(5)?.opacity)
+        val saved = assertNotNull(repository.get(5))
+        assertEquals("Horloge du salon", saved.name)
+        assertEquals("0", saved.params.string("h24"))
         assertEquals(listOf(5), updater.refreshed)
     }
 
     @Test
-    fun `un nom vide est remplace par le nom de l'application`() = runTest {
-        repository.save(WidgetConfig(appWidgetId = 5, targetPackage = chrome.packageName, targetLabel = "Chrome"))
-        val vm = viewModel()
-        vm.start(widgetId = 5, presetPackage = null)
-
-        vm.update { it.copy(name = "   ") }
-        vm.save()
-        vm.events.first()
-
-        assertEquals("Chrome", repository.get(5)?.name)
-    }
-
-    @Test
     fun `un widget tout juste epingle reprend la configuration en attente sans interaction`() = runTest {
-        repository.savePending(
-            WidgetConfig(appWidgetId = 0, name = "Maps", targetPackage = maps.packageName, targetLabel = "Maps"),
-        )
+        repository.savePending(WidgetInstance(0, "calendar.countdown", params = Params(mapOf("date" to "2026-12-25"))))
         val vm = viewModel()
 
-        vm.start(widgetId = 42, presetPackage = null)
+        vm.start(widgetId = 42, kindId = null, presetPackage = null)
 
         assertEquals(EditorEvent.Saved(42), vm.events.first())
-        assertEquals(maps.packageName, repository.get(42)?.targetPackage)
+        assertEquals("2026-12-25", repository.get(42)?.params?.string("date"))
         assertEquals(listOf(42), updater.refreshed)
-        assertEquals(42, vm.state.value.config.appWidgetId)
     }
 
     @Test
-    fun `un widget pose sans configuration en attente ouvre un editeur vierge`() {
+    fun `un widget pose depuis le menu du lanceur propose d'abord de choisir un type`() {
         val vm = viewModel()
-        vm.start(widgetId = 9, presetPackage = null)
+        vm.start(widgetId = 9, kindId = null, presetPackage = null)
+        assertTrue(vm.state.value.needsKind)
 
-        val state = vm.state.value
-        assertFalse(state.loading)
-        assertEquals(9, state.config.appWidgetId)
-        assertNull(state.config.targetPackage)
-        assertFalse(state.canSave)
-    }
+        vm.chooseKind("clock.digital")
 
-    @Test
-    fun `changer d'application conserve un nom personnalise mais suit sinon l'application`() {
-        val vm = viewModel()
-        vm.start(widgetId = 0, presetPackage = chrome.packageName)
-
-        vm.selectApp(maps)
-        assertEquals("Maps", vm.state.value.config.name)
-
-        vm.update { it.copy(name = "Mon trajet") }
-        vm.selectApp(chrome)
-        assertEquals("Mon trajet", vm.state.value.config.name)
-        assertEquals(chrome.packageName, vm.state.value.config.targetPackage)
+        val instance = assertNotNull(vm.state.value.instance)
+        assertEquals(9, instance.appWidgetId)
+        assertEquals("clock.digital", instance.kindId)
+        assertTrue(vm.state.value.isPlaced)
+        assertNull(vm.state.value.instance?.params?.values?.get("inconnu"))
     }
 
     @Test
     fun `start est idempotent`() {
         val vm = viewModel()
-        vm.start(widgetId = 0, presetPackage = chrome.packageName)
-        vm.update { it.copy(name = "Modifié") }
+        vm.start(0, "clock.digital", null)
+        vm.setName("Modifié")
 
-        vm.start(widgetId = 0, presetPackage = maps.packageName)
+        vm.start(0, "app.icon", null)
 
-        assertEquals("Modifié", vm.state.value.config.name)
-        assertEquals(chrome.packageName, vm.state.value.config.targetPackage)
-    }
-
-    @Test
-    fun `une liste de notes peut etre enregistree sans application`() {
-        val vm = viewModel()
-        vm.start(widgetId = 0, presetPackage = null)
-
-        vm.update { it.copy(contentType = WidgetContentType.NOTES_LIST) }
-
-        assertTrue(vm.state.value.canSave)
-    }
-
-    @Test
-    fun `l'apercu reprend les notes en cache`() {
-        val cached = listOf(NoteSummary("a", "Courses", "Pain", 10L))
-        val vm = viewModel(cachedNotes = cached)
-        vm.start(widgetId = 0, presetPackage = null)
-
-        vm.update { it.copy(contentType = WidgetContentType.NOTES_LIST) }
-
-        assertEquals(cached, vm.state.value.previewNotes)
-    }
-
-    @Test
-    fun `les actualites et les e-mails se passent aussi d'application`() {
-        val vm = viewModel()
-        vm.start(widgetId = 0, presetPackage = null)
-
-        vm.update { it.copy(contentType = WidgetContentType.NEWS_FEED) }
-        assertTrue(vm.state.value.canSave)
-
-        vm.update { it.copy(contentType = WidgetContentType.MAIL_INBOX) }
-        assertTrue(vm.state.value.canSave)
-    }
-
-    @Test
-    fun `changer de type recharge l'apercu`() {
-        val cached = listOf(NoteSummary("a", "Titre", "Résumé", 10L))
-        val vm = viewModel(cachedNotes = cached)
-        vm.start(widgetId = 0, presetPackage = null)
-        assertTrue(vm.state.value.previewNotes.isEmpty()) // type par défaut : raccourci, pas de liste
-
-        vm.update { it.copy(contentType = WidgetContentType.NEWS_FEED) }
-
-        assertEquals(cached, vm.state.value.previewNotes)
-    }
-
-    @Test
-    fun `un dossier exige au moins une application et plafonne a huit`() {
-        val vm = viewModel()
-        vm.start(widgetId = 0, presetPackage = null)
-        vm.update { it.copy(contentType = WidgetContentType.APP_GRID) }
-        assertFalse(vm.state.value.canSave)
-
-        repeat(12) { vm.addPackage(AppInfo("pkg.n$it", "App $it")) }
-
-        assertTrue(vm.state.value.canSave)
-        assertEquals(WidgetConfig.MAX_GRID_APPS, vm.state.value.config.packages.size)
-        assertEquals("pkg.n0", vm.state.value.config.packages.first())
-    }
-
-    @Test
-    fun `une application ajoutee deux fois n'apparait qu'une fois et peut etre retiree`() {
-        val vm = viewModel()
-        vm.start(widgetId = 0, presetPackage = null)
-        vm.update { it.copy(contentType = WidgetContentType.APP_GRID) }
-
-        vm.addPackage(chrome)
-        vm.addPackage(chrome)
-        vm.addPackage(maps)
-        assertEquals(listOf(chrome.packageName, maps.packageName), vm.state.value.config.packages)
-
-        vm.removePackage(chrome.packageName)
-        assertEquals(listOf(maps.packageName), vm.state.value.config.packages)
-    }
-
-    @Test
-    fun `un modele fournit la configuration et la taille de depart`() {
-        val template = WidgetTemplate(
-            id = "pill",
-            title = 0,
-            subtitle = 0,
-            section = TemplateSection.APPS,
-            config = WidgetConfig(
-                appWidgetId = WidgetConfig.NO_ID,
-                contentType = WidgetContentType.DEVICE_STATUS,
-                accentColor = 0xFFE5484D.toInt(),
-            ),
-            size = fmrv.widgetstudio.domain.model.WidgetSizeOption.BAR,
-        )
-        val vm = viewModel()
-
-        vm.start(widgetId = 0, presetPackage = null, template = template)
-
-        assertEquals(WidgetContentType.DEVICE_STATUS, vm.state.value.config.contentType)
-        assertEquals(0xFFE5484D.toInt(), vm.state.value.config.accentColor)
-        assertEquals(fmrv.widgetstudio.domain.model.WidgetSizeOption.BAR, vm.state.value.pinSize)
-        assertTrue(vm.state.value.canSave)
-    }
-
-    @Test
-    fun `une barre de recherche exige une application`() {
-        val vm = viewModel()
-        vm.start(widgetId = 0, presetPackage = null)
-        vm.update { it.copy(contentType = WidgetContentType.SEARCH_BAR) }
-        assertFalse(vm.state.value.canSave)
-
-        vm.selectApp(chrome)
-        assertTrue(vm.state.value.canSave)
+        assertEquals("Modifié", vm.state.value.instance?.name)
+        assertEquals("clock.digital", vm.state.value.instance?.kindId)
     }
 }

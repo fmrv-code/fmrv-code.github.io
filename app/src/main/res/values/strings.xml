@@ -169,7 +169,7 @@
     <string name="style_transparent">Sans fond</string>
 
     <string name="gallery_title">Galerie</string>
-    <string name="gallery_intro">Choisissez un modèle, personnalisez-le, puis ajoutez-le à votre écran d’accueil.</string>
+    <string name="gallery_intro">Choisissez un widget, personnalisez-le avec l’aperçu en direct, puis ajoutez-le à votre écran d’accueil.</string>
     <string name="gallery_section_apps">Applications</string>
     <string name="gallery_section_info">Informations</string>
     <string name="gallery_section_device">Appareil</string>
@@ -214,4 +214,89 @@
     <string name="grid_hint">Chaque icône ouvre son application. Le nom s’affiche sous la grille si le widget est assez haut.</string>
     <string name="search_hint">Touchez la barre pour ouvrir l’application choisie (navigateur, moteur de recherche…).</string>
     <string name="pill_hint">Le texte est libre : nom de l’application par défaut.</string>
+    <!-- Catalogue : rubriques -->
+    <string name="cat_clocks">Horloges</string>
+    <string name="cat_calendar">Calendriers et dates</string>
+    <string name="cat_apps">Applications</string>
+    <string name="cat_info">Informations</string>
+    <string name="cat_device">Appareil</string>
+    <string name="widget_large_label">Widget Studio · Grand</string>
+    <string name="size_large">Grand (4×4)</string>
+    <string name="editor_choose_type">Choisissez un type de widget</string>
+    <string name="date_choose">Choisir une date</string>
+    <string name="date_ok">OK</string>
+    <string name="date_cancel">Annuler</string>
+
+    <!-- Horloges -->
+    <string name="kind_clock_digital">Horloge numérique</string>
+    <string name="kind_clock_digital_desc">Heure et date, tailles adaptées au widget</string>
+    <string name="kind_clock_stack">Horloge empilée</string>
+    <string name="kind_clock_stack_desc">Heures et minutes en très grand</string>
+    <string name="kind_clock_analog">Horloge à aiguilles</string>
+    <string name="kind_clock_analog_desc">Quatre cadrans au choix</string>
+    <string name="kind_clock_world">Horloge mondiale</string>
+    <string name="kind_clock_world_desc">Jusqu’à trois villes</string>
+    <string name="option_seconds">Afficher les secondes</string>
+    <string name="field_align">Alignement</string>
+    <string name="align_start">Gauche</string>
+    <string name="align_center">Centre</string>
+    <string name="align_end">Droite</string>
+    <string name="field_face">Cadran</string>
+    <string name="face_light">Clair</string>
+    <string name="face_dark">Sombre</string>
+    <string name="face_classic">Classique</string>
+    <string name="face_bold">Corail</string>
+    <string name="field_city_1">Première ville</string>
+    <string name="field_city_2">Deuxième ville</string>
+    <string name="field_city_3">Troisième ville</string>
+
+    <!-- Calendriers -->
+    <string name="kind_calendar_month">Calendrier du mois</string>
+    <string name="kind_calendar_month_desc">Le jour courant mis en valeur</string>
+    <string name="kind_calendar_week">Semaine</string>
+    <string name="kind_calendar_week_desc">Les sept jours en un bandeau</string>
+    <string name="kind_calendar_date">Grande date</string>
+    <string name="kind_calendar_date_desc">Jour, mois et numéro en grand</string>
+    <string name="kind_countdown">Compte à rebours</string>
+    <string name="kind_countdown_desc">Jours restants avant un événement</string>
+    <string name="kind_progress">Progression</string>
+    <string name="kind_progress_desc">Journée, semaine, mois et année</string>
+    <string name="option_monday_first">La semaine commence le lundi</string>
+    <string name="field_event_title">Nom de l’événement</string>
+    <string name="field_event_title_hint">Vacances, anniversaire, examen…</string>
+    <string name="field_date">Date</string>
+    <string name="countdown_pick_date">Choisissez une date dans l’éditeur</string>
+    <string name="countdown_today">Aujourd’hui !</string>
+    <string name="countdown_day_left">jour restant</string>
+    <string name="countdown_days_left">jours restants</string>
+    <string name="countdown_day_ago">jour écoulé</string>
+    <string name="countdown_days_ago">jours écoulés</string>
+    <string name="progress_year">Année</string>
+    <string name="progress_month">Mois</string>
+    <string name="progress_week">Semaine</string>
+    <string name="progress_day">Jour</string>
+
+    <!-- Applications, appareil, flux -->
+    <string name="kind_app_icon">Icône</string>
+    <string name="kind_app_icon_desc">Une application, en un geste</string>
+    <string name="kind_app_pill">Pilule</string>
+    <string name="kind_app_pill_desc">Grande pastille ronde et libellé</string>
+    <string name="kind_app_folder">Dossier d’applications</string>
+    <string name="kind_app_folder_desc">Jusqu’à 8 applications en grille</string>
+    <string name="kind_app_search">Barre de recherche</string>
+    <string name="kind_app_search_desc">Ouvre votre navigateur ou moteur</string>
+    <string name="field_folder_title">Nom du dossier</string>
+    <string name="folder_empty">Ajoutez des applications dans l’éditeur</string>
+    <string name="kind_device">Entretien de l’appareil</string>
+    <string name="kind_device_desc">Stockage, mémoire et batterie</string>
+    <string name="kind_feed_notes">Notes Joplin</string>
+    <string name="kind_feed_notes_desc">Vos notes récentes</string>
+    <string name="kind_feed_news">Franceinfo</string>
+    <string name="kind_feed_news_desc">Les gros titres à la une</string>
+    <string name="kind_feed_mail">Gmail</string>
+    <string name="kind_feed_mail_desc">Vos e-mails non lus</string>
+    <string name="time_now">à l’instant</string>
+    <string name="time_minutes_ago">il y a %1$d min</string>
+    <string name="time_hours_ago">il y a %1$d h</string>
+    <string name="time_days_ago">il y a %1$d j</string>
 </resources>

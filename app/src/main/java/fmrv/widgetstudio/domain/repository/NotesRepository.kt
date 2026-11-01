@@ -2,7 +2,6 @@ package fmrv.widgetstudio.domain.repository
 
 import fmrv.widgetstudio.domain.model.NotesSnapshot
 import fmrv.widgetstudio.domain.model.RefreshResult
-import fmrv.widgetstudio.domain.model.WidgetContentType
 
 /** Source de contenu d'un widget de type liste (notes, actualités, e-mails). */
 interface ItemsRepository {
@@ -21,8 +20,3 @@ interface NotesRepository : ItemsRepository
 interface NewsRepository : ItemsRepository
 
 interface MailRepository : ItemsRepository
-
-/** Retrouve la source correspondant à un type de widget liste. */
-interface ListSources {
-    fun forType(type: WidgetContentType): ItemsRepository?
-}

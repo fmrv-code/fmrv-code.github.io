@@ -29,16 +29,19 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import fmrv.widgetstudio.R
-import fmrv.widgetstudio.domain.model.TemplateSection
-import fmrv.widgetstudio.domain.model.WidgetTemplate
+import fmrv.widgetstudio.domain.model.Category
+import fmrv.widgetstudio.domain.model.Params
+import fmrv.widgetstudio.domain.model.WidgetInstance
+import fmrv.widgetstudio.kinds.Kinds
+import fmrv.widgetstudio.kinds.WidgetKind
 import fmrv.widgetstudio.ui.components.OneUiCard
-import fmrv.widgetstudio.ui.components.WidgetPreview
 import fmrv.widgetstudio.ui.components.rememberHaptics
+import fmrv.widgetstudio.ui.preview.WidgetPreview
 
-/** Galerie de modèles : chaque carte montre le rendu réel du widget dans son style de départ. */
+/** Galerie : toutes les familles de widgets du catalogue, chaque carte montrant le vrai rendu. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GalleryScreen(onTemplate: (WidgetTemplate) -> Unit) {
+fun GalleryScreen(onKind: (WidgetKind<*>) -> Unit) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val haptics = rememberHaptics()
     val background = MaterialTheme.colorScheme.background
@@ -68,22 +71,22 @@ fun GalleryScreen(onTemplate: (WidgetTemplate) -> Unit) {
                     modifier = Modifier.padding(horizontal = 8.dp),
                 )
             }
-            TemplateSection.entries.forEach { section ->
-                val templates = Templates.all.filter { it.section == section }
-                if (templates.isEmpty()) return@forEach
-                item(key = "header_${section.name}") {
+            Category.entries.forEach { category ->
+                val kinds = Kinds.inCategory(category)
+                if (kinds.isEmpty()) return@forEach
+                item(key = "header_${category.name}") {
                     Text(
-                        stringResource(sectionTitle(section)),
+                        stringResource(categoryTitle(category)),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(start = 8.dp, top = 8.dp),
                     )
                 }
-                items(templates.chunked(2), key = { row -> row.first().id }) { row ->
+                items(kinds.chunked(2), key = { row -> row.first().id }) { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                        row.forEach { template ->
-                            TemplateCard(template, Modifier.weight(1f)) {
+                        row.forEach { kind ->
+                            KindCard(kind, Modifier.weight(1f)) {
                                 haptics.tick()
-                                onTemplate(template)
+                                onKind(kind)
                             }
                         }
                         if (row.size == 1) Box(Modifier.weight(1f))
@@ -95,31 +98,41 @@ fun GalleryScreen(onTemplate: (WidgetTemplate) -> Unit) {
 }
 
 @StringRes
-private fun sectionTitle(section: TemplateSection): Int = when (section) {
-    TemplateSection.APPS -> R.string.gallery_section_apps
-    TemplateSection.INFO -> R.string.gallery_section_info
-    TemplateSection.DEVICE -> R.string.gallery_section_device
+fun categoryTitle(category: Category): Int = when (category) {
+    Category.CLOCKS -> R.string.cat_clocks
+    Category.CALENDAR -> R.string.cat_calendar
+    Category.APPS -> R.string.cat_apps
+    Category.INFO -> R.string.cat_info
+    Category.DEVICE -> R.string.cat_device
 }
 
+/** Instance de démonstration : style et réglages par défaut du type, sans identifiant de widget. */
+fun sampleInstance(kind: WidgetKind<*>): WidgetInstance = WidgetInstance(
+    appWidgetId = WidgetInstance.NO_ID,
+    kindId = kind.id,
+    style = kind.defaultStyle,
+    params = Params(kind.defaultParams),
+)
+
 @Composable
-private fun TemplateCard(template: WidgetTemplate, modifier: Modifier, onClick: () -> Unit) {
+private fun KindCard(kind: WidgetKind<*>, modifier: Modifier, onClick: () -> Unit) {
     OneUiCard(modifier = modifier, onClick = onClick) {
         // Tuile « fond d'écran » pour que la transparence et le verre soient visibles.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(128.dp)
+                .height(132.dp)
                 .background(Brush.linearGradient(listOf(Color(0xFFE59A74), Color(0xFFB4533A)))),
             contentAlignment = Alignment.Center,
         ) {
-            val size = template.size
-            val scale = minOf(150f / size.widthDp, 96f / size.heightDp)
-            WidgetPreview(config = template.config, icon = null, sizeOption = size, scale = scale)
+            val size = kind.defaultSize
+            val scale = minOf(150f / size.widthDp, 100f / size.heightDp)
+            WidgetPreview(sampleInstance(kind), size, scale = scale)
         }
         Column(Modifier.padding(12.dp)) {
-            Text(stringResource(template.title), style = MaterialTheme.typography.titleMedium, maxLines = 1)
+            Text(stringResource(kind.title), style = MaterialTheme.typography.titleMedium, maxLines = 1)
             Text(
-                stringResource(template.subtitle),
+                stringResource(kind.description),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
