@@ -89,7 +89,7 @@ fun NewsSettingsCard(viewModel: NewsSettingsViewModel = hiltViewModel()) {
                 modifier = Modifier.fillMaxWidth(),
             )
             MessageLine(state.message)
-            ActionButton(stringResource(R.string.news_test), state.busy, Modifier.fillMaxWidth()) {
+            ActionButton(stringResource(R.string.news_test), state.busy, modifier = Modifier.fillMaxWidth()) {
                 haptics.confirm()
                 viewModel.refreshNow()
             }
