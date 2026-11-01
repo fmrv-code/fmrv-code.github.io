@@ -49,7 +49,11 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "widget_studio.db").build()
+        Room.databaseBuilder(context, AppDatabase::class.java, "widget_studio.db")
+            // Version 2 : modèle de widget entièrement refondu. Les widgets déjà posés affichent
+            // « Touchez pour configurer » et se reconfigurent ; plus sûr qu'une migration non testable ici.
+            .fallbackToDestructiveMigration()
+            .build()
 
     @Provides
     @Singleton

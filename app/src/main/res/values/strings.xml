@@ -47,6 +47,7 @@
     <string name="size_small">Petit (1×1)</string>
     <string name="size_medium">Moyen (2×2)</string>
     <string name="size_wide">Large (4×2)</string>
+    <string name="size_bar">Barre (4×1)</string>
 
     <string name="shape_square">Carré</string>
     <string name="shape_rounded">Arrondi</string>
@@ -80,6 +81,7 @@
     <string name="widget_small_label">Widget Studio · Petit</string>
     <string name="widget_medium_label">Widget Studio · Moyen</string>
     <string name="widget_wide_label">Widget Studio · Large</string>
+    <string name="widget_bar_label">Widget Studio · Barre</string>
     <string name="widget_unconfigured">Touchez pour configurer</string>
 
     <string name="notes_source_hint">Affiche vos notes Joplin les plus récentes, lues depuis OneDrive. Connectez-vous d’abord dans Réglages.</string>
@@ -152,4 +154,64 @@
     <string name="mail_refresh_ok">%1$d e-mails non lus.</string>
     <string name="mail_error_auth">Identifiants refusés. Vérifiez l’adresse et le mot de passe d’application (pas votre mot de passe habituel).</string>
     <string name="mail_error_unknown">Impossible de lire Gmail. Vérifiez que l’accès IMAP est activé dans les réglages Gmail.</string>
+
+    <string name="search_hint_default">Rechercher sur le Web</string>
+
+    <string name="style_blue_night">Bleu nuit</string>
+    <string name="style_coral">Corail</string>
+    <string name="style_glass_light">Verre clair</string>
+    <string name="style_glass_dark">Verre sombre</string>
+    <string name="style_lavender">Lavande</string>
+    <string name="style_mint">Menthe</string>
+    <string name="style_black">Noir</string>
+    <string name="style_white">Blanc</string>
+    <string name="style_one_ui_blue">Bleu One UI</string>
+    <string name="style_transparent">Sans fond</string>
+
+    <string name="gallery_title">Galerie</string>
+    <string name="gallery_intro">Choisissez un modèle, personnalisez-le, puis ajoutez-le à votre écran d’accueil.</string>
+    <string name="gallery_section_apps">Applications</string>
+    <string name="gallery_section_info">Informations</string>
+    <string name="gallery_section_device">Appareil</string>
+    <string name="tpl_icon">Icône</string>
+    <string name="tpl_icon_desc">Une application, en un geste</string>
+    <string name="tpl_pill">Pilule</string>
+    <string name="tpl_pill_desc">Grande pastille ronde et libellé</string>
+    <string name="tpl_grid">Dossier d’applications</string>
+    <string name="tpl_grid_desc">Jusqu’à 8 applications en grille</string>
+    <string name="tpl_search">Barre de recherche</string>
+    <string name="tpl_search_desc">Ouvre votre navigateur ou moteur</string>
+    <string name="tpl_clock">Horloge et date</string>
+    <string name="tpl_clock_desc">Heure animée par le système</string>
+    <string name="tpl_news">Franceinfo</string>
+    <string name="tpl_news_desc">Les gros titres à la une</string>
+    <string name="tpl_notes">Notes Joplin</string>
+    <string name="tpl_notes_desc">Vos notes récentes</string>
+    <string name="tpl_mail">Gmail</string>
+    <string name="tpl_mail_desc">Vos e-mails non lus</string>
+    <string name="tpl_device">Entretien de l’appareil</string>
+    <string name="tpl_device_desc">Stockage, mémoire et batterie</string>
+
+    <string name="nav_gallery">Galerie</string>
+    <string name="section_style">Style</string>
+    <string name="section_background_kind">Fond</string>
+    <string name="section_color_start">Couleur du fond</string>
+    <string name="section_color_end">Deuxième couleur</string>
+    <string name="section_accent">Couleur d’accent</string>
+    <string name="section_layout">Disposition</string>
+    <string name="section_apps_folder">Applications du dossier</string>
+    <string name="section_label_pill">Texte affiché</string>
+    <string name="section_label_search">Texte de la barre</string>
+    <string name="bg_solid">Uni</string>
+    <string name="bg_gradient">Dégradé</string>
+    <string name="bg_glass">Verre</string>
+    <string name="layout_icon">Icône</string>
+    <string name="layout_pill">Pilule</string>
+    <string name="folder_add">Ajouter une application</string>
+    <string name="folder_remove">Retirer</string>
+    <string name="folder_full">Dossier plein (8 applications au maximum)</string>
+    <string name="device_hint">Affiche l’espace libre, la mémoire disponible et la batterie. Touchez une jauge pour actualiser, le bouton rond ouvre l’entretien de l’appareil.</string>
+    <string name="grid_hint">Chaque icône ouvre son application. Le nom s’affiche sous la grille si le widget est assez haut.</string>
+    <string name="search_hint">Touchez la barre pour ouvrir l’application choisie (navigateur, moteur de recherche…).</string>
+    <string name="pill_hint">Le texte est libre : nom de l’application par défaut.</string>
 </resources>

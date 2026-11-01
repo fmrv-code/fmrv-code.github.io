@@ -94,6 +94,18 @@
                 android:resource="@xml/widget_info_wide" />
         </receiver>
 
+        <receiver
+            android:name=".widget.BarWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_bar_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_bar" />
+        </receiver>
+
         <!-- Callback interne de l'épinglage : non exporté. -->
         <receiver
             android:name=".widget.PinResultReceiver"

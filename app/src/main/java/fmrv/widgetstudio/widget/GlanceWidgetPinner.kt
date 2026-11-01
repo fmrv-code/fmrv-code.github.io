@@ -28,6 +28,7 @@ class GlanceWidgetPinner @Inject constructor(
             WidgetSizeOption.SMALL -> SmallWidgetReceiver::class.java
             WidgetSizeOption.MEDIUM -> MediumWidgetReceiver::class.java
             WidgetSizeOption.WIDE -> WideWidgetReceiver::class.java
+            WidgetSizeOption.BAR -> BarWidgetReceiver::class.java
         }
         // Mutable : le système y ajoute l'identifiant du widget une fois posé.
         val callback = PendingIntent.getBroadcast(

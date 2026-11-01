@@ -3,7 +3,9 @@ package fmrv.widgetstudio.data
 import fmrv.widgetstudio.data.db.WidgetConfigEntity
 import fmrv.widgetstudio.data.db.toDomain
 import fmrv.widgetstudio.data.db.toEntity
+import fmrv.widgetstudio.domain.model.BackgroundStyle
 import fmrv.widgetstudio.domain.model.WidgetConfig
+import fmrv.widgetstudio.domain.model.WidgetLayout
 import fmrv.widgetstudio.domain.model.WidgetContentType
 import fmrv.widgetstudio.domain.model.WidgetFont
 import fmrv.widgetstudio.domain.model.WidgetShape
@@ -19,8 +21,14 @@ class WidgetConfigMapperTest {
         targetPackage = "com.example.clock",
         targetLabel = "Clock",
         shape = WidgetShape.PILL,
+        background = BackgroundStyle.GLASS,
         backgroundColor = 0xFF112233.toInt(),
+        backgroundEnd = 0xFF445566.toInt(),
         textColor = 0xFFEEDDCC.toInt(),
+        accentColor = 0xFFAA5500.toInt(),
+        layout = WidgetLayout.PILL,
+        packages = listOf("com.a.one", "com.b.two", "com.c.three"),
+        label = "Mon libellé",
         opacity = 0.4f,
         font = WidgetFont.MONO,
         showLabel = false,
@@ -52,5 +60,19 @@ class WidgetConfigMapperTest {
         val tooLow: WidgetConfigEntity = config.toEntity(1L).copy(opacity = -1f)
         assertEquals(1f, tooHigh.toDomain().opacity)
         assertEquals(0f, tooLow.toDomain().opacity)
+    }
+
+    @Test
+    fun `les applications d'un dossier sont conservees dans l'ordre et une liste vide reste vide`() {
+        val folder = config.copy(packages = listOf("z.last", "a.first"))
+        assertEquals(listOf("z.last", "a.first"), folder.toEntity(1L).toDomain().packages)
+        assertEquals(emptyList(), config.copy(packages = emptyList()).toEntity(1L).toDomain().packages)
+    }
+
+    @Test
+    fun `un fond ou une disposition inconnus retombent sur les valeurs par defaut`() {
+        val restored = config.toEntity(1L).copy(background = "NEON", layout = "TRIANGLE").toDomain()
+        assertEquals(BackgroundStyle.SOLID, restored.background)
+        assertEquals(WidgetLayout.ICON, restored.layout)
     }
 }

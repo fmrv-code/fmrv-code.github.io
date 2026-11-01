@@ -9,6 +9,8 @@ import fmrv.widgetstudio.domain.model.NoteSummary
 import fmrv.widgetstudio.domain.model.NotesSnapshot
 import fmrv.widgetstudio.domain.model.RefreshResult
 import fmrv.widgetstudio.domain.model.PinResult
+import fmrv.widgetstudio.domain.model.TemplateSection
+import fmrv.widgetstudio.domain.model.WidgetTemplate
 import fmrv.widgetstudio.domain.model.WidgetConfig
 import fmrv.widgetstudio.domain.model.WidgetContentType
 import fmrv.widgetstudio.domain.model.WidgetSizeOption
@@ -282,5 +284,69 @@ class EditorViewModelTest {
         vm.update { it.copy(contentType = WidgetContentType.NEWS_FEED) }
 
         assertEquals(cached, vm.state.value.previewNotes)
+    }
+
+    @Test
+    fun `un dossier exige au moins une application et plafonne a huit`() {
+        val vm = viewModel()
+        vm.start(widgetId = 0, presetPackage = null)
+        vm.update { it.copy(contentType = WidgetContentType.APP_GRID) }
+        assertFalse(vm.state.value.canSave)
+
+        repeat(12) { vm.addPackage(AppInfo("pkg.n$it", "App $it")) }
+
+        assertTrue(vm.state.value.canSave)
+        assertEquals(WidgetConfig.MAX_GRID_APPS, vm.state.value.config.packages.size)
+        assertEquals("pkg.n0", vm.state.value.config.packages.first())
+    }
+
+    @Test
+    fun `une application ajoutee deux fois n'apparait qu'une fois et peut etre retiree`() {
+        val vm = viewModel()
+        vm.start(widgetId = 0, presetPackage = null)
+        vm.update { it.copy(contentType = WidgetContentType.APP_GRID) }
+
+        vm.addPackage(chrome)
+        vm.addPackage(chrome)
+        vm.addPackage(maps)
+        assertEquals(listOf(chrome.packageName, maps.packageName), vm.state.value.config.packages)
+
+        vm.removePackage(chrome.packageName)
+        assertEquals(listOf(maps.packageName), vm.state.value.config.packages)
+    }
+
+    @Test
+    fun `un modele fournit la configuration et la taille de depart`() {
+        val template = WidgetTemplate(
+            id = "pill",
+            title = 0,
+            subtitle = 0,
+            section = TemplateSection.APPS,
+            config = WidgetConfig(
+                appWidgetId = WidgetConfig.NO_ID,
+                contentType = WidgetContentType.DEVICE_STATUS,
+                accentColor = 0xFFE5484D.toInt(),
+            ),
+            size = fmrv.widgetstudio.domain.model.WidgetSizeOption.BAR,
+        )
+        val vm = viewModel()
+
+        vm.start(widgetId = 0, presetPackage = null, template = template)
+
+        assertEquals(WidgetContentType.DEVICE_STATUS, vm.state.value.config.contentType)
+        assertEquals(0xFFE5484D.toInt(), vm.state.value.config.accentColor)
+        assertEquals(fmrv.widgetstudio.domain.model.WidgetSizeOption.BAR, vm.state.value.pinSize)
+        assertTrue(vm.state.value.canSave)
+    }
+
+    @Test
+    fun `une barre de recherche exige une application`() {
+        val vm = viewModel()
+        vm.start(widgetId = 0, presetPackage = null)
+        vm.update { it.copy(contentType = WidgetContentType.SEARCH_BAR) }
+        assertFalse(vm.state.value.canSave)
+
+        vm.selectApp(chrome)
+        assertTrue(vm.state.value.canSave)
     }
 }

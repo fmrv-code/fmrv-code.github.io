@@ -4,6 +4,15 @@ Application Android native (Kotlin, Jetpack Compose, Jetpack Glance) pour créer
 
 ## Fonctionnalités
 
+**Galerie de modèles** (écran d'accueil de l'application) : on choisit un modèle dans le style One UI, on le personnalise avec un aperçu en direct, puis on l'ajoute à l'écran d'accueil.
+
+- **Icône** · **Pilule** (grande pastille ronde + libellé) · **Dossier d'applications** (jusqu'à 8 icônes en grille) · **Barre de recherche**
+- **Entretien de l'appareil** : stockage libre, mémoire disponible, batterie, avec jauges ; le bouton rond ouvre l'entretien de l'appareil Samsung (ou les réglages de stockage)
+- **Horloge et date**, **Franceinfo**, **Notes Joplin**, **Gmail** (voir plus bas)
+- **Styles prédéfinis** : Bleu nuit, Corail, Verre clair / sombre, Lavande, Menthe, Noir, Blanc, Bleu One UI, Sans fond ; fonds **uni, dégradé ou verre** (translucide), couleur d'accent, transparence, forme, police.
+
+Limite connue : un widget ne peut pas flouter le fond d'écran. Le « verre » est un dégradé translucide qui s'en approche.
+
 - **Raccourci d'application** : un widget qui lance n'importe quelle application installée.
 - **Horloge et date** : heure animée par le système (sans réveiller l'application), format 12 / 24 h, date optionnelle. Un appui peut ouvrir une application au choix.
 - **Franceinfo** : les gros titres « À la une » (flux RSS public, sans compte). Un appui ouvre l'article.

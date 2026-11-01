@@ -136,6 +136,10 @@ private fun WidgetCard(config: WidgetConfig, viewModel: HomeViewModel, onClick: 
                         WidgetContentType.NOTES_LIST -> stringResource(R.string.type_notes)
                         WidgetContentType.NEWS_FEED -> stringResource(R.string.type_news)
                         WidgetContentType.MAIL_INBOX -> stringResource(R.string.type_mail)
+                        WidgetContentType.APP_GRID -> stringResource(R.string.tpl_grid)
+                        WidgetContentType.SEARCH_BAR -> stringResource(R.string.tpl_search)
+                        WidgetContentType.DEVICE_STATUS -> stringResource(R.string.tpl_device)
+                        WidgetContentType.WEATHER_CLOCK -> stringResource(R.string.type_clock)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

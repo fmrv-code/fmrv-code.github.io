@@ -35,3 +35,5 @@ class SmallWidgetReceiver : BaseWidgetReceiver()
 class MediumWidgetReceiver : BaseWidgetReceiver()
 
 class WideWidgetReceiver : BaseWidgetReceiver()
+
+class BarWidgetReceiver : BaseWidgetReceiver()

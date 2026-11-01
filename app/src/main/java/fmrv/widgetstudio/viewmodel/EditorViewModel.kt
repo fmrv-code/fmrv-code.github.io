@@ -13,6 +13,7 @@ import fmrv.widgetstudio.domain.model.PinResult
 import fmrv.widgetstudio.domain.model.WidgetConfig
 import fmrv.widgetstudio.domain.model.WidgetContentType
 import fmrv.widgetstudio.domain.model.WidgetSizeOption
+import fmrv.widgetstudio.domain.model.WidgetTemplate
 import fmrv.widgetstudio.domain.repository.AppIconProvider
 import fmrv.widgetstudio.domain.repository.AppsSource
 import fmrv.widgetstudio.domain.repository.ListSources
@@ -38,9 +39,13 @@ data class EditorUiState(
     val pinSize: WidgetSizeOption = WidgetSizeOption.MEDIUM,
     val loading: Boolean = true,
 ) {
-    /** Un raccourci exige une application cible ; l'horloge et la liste de notes peuvent s'en passer. */
+    /** Raccourci et barre de recherche exigent une application cible, un dossier au moins une application. */
     val canSave: Boolean
-        get() = config.contentType != WidgetContentType.APP_SHORTCUT || config.targetPackage != null
+        get() = when (config.contentType) {
+            WidgetContentType.APP_SHORTCUT, WidgetContentType.SEARCH_BAR -> config.targetPackage != null
+            WidgetContentType.APP_GRID -> config.packages.isNotEmpty()
+            else -> true
+        }
 
     /** Vrai quand le widget existe déjà sur l'écran d'accueil (édition) ; faux pour une création. */
     val isPlaced: Boolean
@@ -78,7 +83,7 @@ class EditorViewModel @Inject constructor(
      * - [widgetId] > 0 : édition d'un widget posé (ou configuration initiale à la pose).
      * - [widgetId] == 0 : création depuis l'application, éventuellement pour [presetPackage].
      */
-    fun start(widgetId: Int, presetPackage: String?) {
+    fun start(widgetId: Int, presetPackage: String?, template: WidgetTemplate? = null) {
         if (started) return
         started = true
 
@@ -86,10 +91,11 @@ class EditorViewModel @Inject constructor(
             val apps = runCatching { appsSource.loadApps() }.getOrDefault(emptyList())
             _state.update { it.copy(apps = apps) }
         }
-        viewModelScope.launch { initConfig(widgetId, presetPackage) }
+        template?.let { t -> _state.update { it.copy(pinSize = t.size) } }
+        viewModelScope.launch { initConfig(widgetId, presetPackage, template) }
     }
 
-    private suspend fun initConfig(widgetId: Int, presetPackage: String?) {
+    private suspend fun initConfig(widgetId: Int, presetPackage: String?, template: WidgetTemplate?) {
         if (widgetId > 0) {
             val existing = repository.get(widgetId)
             if (existing != null) {
@@ -108,7 +114,7 @@ class EditorViewModel @Inject constructor(
             return
         }
 
-        var config = WidgetConfig(appWidgetId = WidgetConfig.NO_ID)
+        var config = template?.config?.copy(appWidgetId = WidgetConfig.NO_ID) ?: WidgetConfig(appWidgetId = WidgetConfig.NO_ID)
         if (presetPackage != null) {
             val label = appsSource.labelOf(presetPackage)
             if (label != null) {
@@ -174,6 +180,22 @@ class EditorViewModel @Inject constructor(
             val icon = loadIcon(app.packageName)
             _state.update { if (it.config.targetPackage == app.packageName) it.copy(previewIcon = icon) else it }
         }
+    }
+
+    /** Ajoute une application au dossier ([WidgetContentType.APP_GRID]) ; ignore les doublons et le dépassement. */
+    fun addPackage(app: AppInfo) {
+        _state.update { state ->
+            val current = state.config.packages
+            if (app.packageName in current || current.size >= WidgetConfig.MAX_GRID_APPS) {
+                state
+            } else {
+                state.copy(config = state.config.copy(packages = current + app.packageName))
+            }
+        }
+    }
+
+    fun removePackage(packageName: String) {
+        _state.update { it.copy(config = it.config.copy(packages = it.config.packages - packageName)) }
     }
 
     fun clearApp() {

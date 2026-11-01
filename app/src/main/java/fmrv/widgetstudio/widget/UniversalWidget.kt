@@ -52,11 +52,13 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import fmrv.widgetstudio.R
+import fmrv.widgetstudio.domain.model.BackgroundStyle
 import fmrv.widgetstudio.domain.model.NoteSummary
 import fmrv.widgetstudio.domain.model.NotesSnapshot
 import fmrv.widgetstudio.domain.model.WidgetConfig
 import fmrv.widgetstudio.domain.model.WidgetContentType
 import fmrv.widgetstudio.domain.model.WidgetFont
+import fmrv.widgetstudio.domain.model.WidgetLayout
 import fmrv.widgetstudio.domain.model.WidgetShape
 import kotlin.math.roundToInt
 
@@ -72,17 +74,25 @@ class UniversalWidget : GlanceAppWidget() {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
         val entryPoint = context.widgetEntryPoint()
         val config = entryPoint.widgetRepository().get(appWidgetId)
-        val iconPx = (ICON_BITMAP_DP * context.resources.displayMetrics.density).roundToInt()
-        val icon = config
-            ?.takeIf { it.contentType == WidgetContentType.APP_SHORTCUT }
-            ?.targetPackage
-            ?.let { entryPoint.iconProvider().icon(it, iconPx) }
+        val density = context.resources.displayMetrics.density
+        val iconDp = if (config?.contentType == WidgetContentType.APP_GRID) GRID_ICON_BITMAP_DP else ICON_BITMAP_DP
+        val iconPx = (iconDp * density).roundToInt()
+        val packages = when (config?.contentType) {
+            WidgetContentType.APP_SHORTCUT, WidgetContentType.SEARCH_BAR -> listOfNotNull(config.targetPackage)
+            WidgetContentType.APP_GRID -> config.packages.take(WidgetConfig.MAX_GRID_APPS)
+            else -> emptyList()
+        }
+        // Les icônes sont réduites pour rester sous la limite mémoire des RemoteViews (≈ 1 Mo).
+        val icons = packages.distinct()
+            .mapNotNull { pkg -> entryPoint.iconProvider().icon(pkg, iconPx)?.let { pkg to it } }
+            .toMap()
+        val device = if (config?.contentType == WidgetContentType.DEVICE_STATUS) DeviceStatsReader.read(context) else null
 
         val notes = config?.contentType
             ?.takeIf { it.isList }
             ?.let { type -> entryPoint.listSources().forType(type)?.let { loadNotes(context, it) } }
 
-        provideContent { UniversalWidgetContent(appWidgetId, config, icon, notes) }
+        provideContent { UniversalWidgetContent(appWidgetId, config, icons, notes, device) }
     }
 
     /** Lit le cache (sans réseau). Si le cache est vide et ancien, déclenche une actualisation en arrière-plan. */
@@ -95,6 +105,7 @@ class UniversalWidget : GlanceAppWidget() {
 
     private companion object {
         const val ICON_BITMAP_DP = 72
+        const val GRID_ICON_BITMAP_DP = 44
         const val EMPTY_CACHE_RETRY_MS = 5 * 60 * 1000L
     }
 }
@@ -108,7 +119,13 @@ fun configureIntent(context: Context, appWidgetId: Int): Intent =
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
 @Composable
-private fun UniversalWidgetContent(appWidgetId: Int, config: WidgetConfig?, icon: Bitmap?, notes: NotesSnapshot?) {
+private fun UniversalWidgetContent(
+    appWidgetId: Int,
+    config: WidgetConfig?,
+    icons: Map<String, Bitmap>,
+    notes: NotesSnapshot?,
+    device: DeviceSnapshot?,
+) {
     val context = LocalContext.current
     if (config == null) {
         UnconfiguredContent(context, appWidgetId)
@@ -118,17 +135,21 @@ private fun UniversalWidgetContent(appWidgetId: Int, config: WidgetConfig?, icon
     val size = LocalSize.current
     val widthDp = size.width.value
     val heightDp = size.height.value
-    val background = Color(config.backgroundColor).copy(alpha = config.opacity)
+    val icon = config.targetPackage?.let { icons[it] }
 
-    val launchIntent = config.targetPackage
-        ?.let { context.packageManager.getLaunchIntentForPackage(it) }
-        ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    val launchIntent = launchIntentFor(context, config.targetPackage)
     // Un raccourci dont l'application a disparu ouvre la configuration plutôt que de ne rien faire.
     val clickIntent = when (config.contentType) {
-        WidgetContentType.APP_SHORTCUT -> launchIntent ?: configureIntent(context, appWidgetId)
+        WidgetContentType.APP_SHORTCUT, WidgetContentType.SEARCH_BAR -> launchIntent ?: configureIntent(context, appWidgetId)
         WidgetContentType.CLOCK_DATE -> launchIntent
-        // Chaque élément de liste a son propre clic ; le titre du widget ouvre le service correspondant.
-        WidgetContentType.NOTES_LIST, WidgetContentType.NEWS_FEED, WidgetContentType.MAIL_INBOX -> null
+        // Ces widgets ont leurs propres zones cliquables (icônes, jauges, éléments de liste).
+        WidgetContentType.APP_GRID,
+        WidgetContentType.DEVICE_STATUS,
+        WidgetContentType.WEATHER_CLOCK,
+        WidgetContentType.NOTES_LIST,
+        WidgetContentType.NEWS_FEED,
+        WidgetContentType.MAIL_INBOX,
+        -> null
     }
     val clickModifier = if (clickIntent != null) {
         GlanceModifier.clickable(actionStartActivity(clickIntent))
@@ -137,12 +158,19 @@ private fun UniversalWidgetContent(appWidgetId: Int, config: WidgetConfig?, icon
     }
 
     ShapedBox(
-        shape = config.shape,
-        color = background,
+        config = config,
         modifier = GlanceModifier.fillMaxSize().appWidgetBackground().then(clickModifier),
     ) {
         when (config.contentType) {
-            WidgetContentType.APP_SHORTCUT -> AppShortcutContent(config, icon, widthDp, heightDp)
+            WidgetContentType.APP_SHORTCUT -> if (config.layout == WidgetLayout.PILL) {
+                PillContent(context, config, icon, heightDp, search = false)
+            } else {
+                AppShortcutContent(config, icon, widthDp, heightDp)
+            }
+            WidgetContentType.SEARCH_BAR -> PillContent(context, config, icon, heightDp, search = true)
+            WidgetContentType.APP_GRID -> GridContent(context, config, icons, widthDp, heightDp)
+            WidgetContentType.DEVICE_STATUS -> DeviceContent(context, config, device, widthDp, heightDp)
+            WidgetContentType.WEATHER_CLOCK -> Unit
             WidgetContentType.CLOCK_DATE -> ClockContent(context, config, widthDp, heightDp)
             WidgetContentType.NOTES_LIST, WidgetContentType.NEWS_FEED, WidgetContentType.MAIL_INBOX ->
                 NotesContent(context, config, notes, widthDp, heightDp)
@@ -152,29 +180,33 @@ private fun UniversalWidgetContent(appWidgetId: Int, config: WidgetConfig?, icon
 
 @Composable
 private fun ShapedBox(
-    shape: WidgetShape,
-    color: Color,
+    config: WidgetConfig,
     modifier: GlanceModifier,
     content: @Composable () -> Unit,
 ) {
-    val colorProvider = ColorProvider(color)
+    val (start, _) = WidgetBackground.colors(config)
+    val radius = WidgetStyle.cornerRadiusDp(config.shape).dp
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val fill = if (config.background == BackgroundStyle.SOLID) {
+            GlanceModifier.background(ColorProvider(Color(start)))
+        } else {
+            // Dégradé / verre : petit bitmap étiré ; les coins sont découpés par cornerRadius.
+            GlanceModifier.background(ImageProvider(WidgetBackground.gradientBitmap(config)))
+        }
         Box(
-            modifier = modifier
-                .background(colorProvider)
-                .cornerRadius(WidgetStyle.cornerRadiusDp(shape).dp),
+            modifier = modifier.then(fill).cornerRadius(radius),
             contentAlignment = Alignment.Center,
             content = content,
         )
     } else {
-        // Android 11 : cornerRadius n'est pas supporté, on teinte une forme vectorielle étirée.
+        // Android 11 : cornerRadius n'est pas supporté, on teinte une forme vectorielle étirée (couleur de départ).
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
             Image(
-                provider = ImageProvider(fallbackShapeRes(shape)),
+                provider = ImageProvider(fallbackShapeRes(config.shape)),
                 contentDescription = null,
                 modifier = GlanceModifier.fillMaxSize(),
                 contentScale = ContentScale.FillBounds,
-                colorFilter = ColorFilter.tint(colorProvider),
+                colorFilter = ColorFilter.tint(ColorProvider(Color(start))),
             )
             content()
         }
@@ -187,7 +219,7 @@ private fun fallbackShapeRes(shape: WidgetShape): Int = when (shape) {
     WidgetShape.PILL -> R.drawable.widget_shape_pill
 }
 
-private fun glanceFont(font: WidgetFont): FontFamily = when (font) {
+internal fun glanceFont(font: WidgetFont): FontFamily = when (font) {
     WidgetFont.SANS -> FontFamily.SansSerif
     WidgetFont.SERIF -> FontFamily.Serif
     WidgetFont.MONO -> FontFamily.Monospace

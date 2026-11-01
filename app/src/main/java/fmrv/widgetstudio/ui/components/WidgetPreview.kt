@@ -29,6 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.text.font.FontFamily
@@ -38,10 +39,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fmrv.widgetstudio.domain.model.NoteSummary
+import fmrv.widgetstudio.domain.model.BackgroundStyle
 import fmrv.widgetstudio.domain.model.WidgetConfig
+import fmrv.widgetstudio.domain.model.WidgetLayout
 import fmrv.widgetstudio.domain.model.WidgetContentType
 import fmrv.widgetstudio.domain.model.WidgetFont
 import fmrv.widgetstudio.domain.model.WidgetSizeOption
+import fmrv.widgetstudio.widget.WidgetBackground
 import fmrv.widgetstudio.widget.WidgetStyle
 import java.time.Instant
 import java.time.ZoneId
@@ -68,29 +72,46 @@ fun WidgetPreview(
     modifier: Modifier = Modifier,
     scale: Float = 1f,
     notes: List<NoteSummary> = emptyList(),
+    icons: Map<String, ImageBitmap> = emptyMap(),
 ) {
     val widthDp = sizeOption.widthDp * scale
     val heightDp = sizeOption.heightDp * scale
     val textColor = Color(config.textColor)
     val shape = RoundedCornerShape((WidgetStyle.cornerRadiusDp(config.shape) * scale).dp)
 
+    val (start, end) = WidgetBackground.colors(config)
+    val fill = if (config.background == BackgroundStyle.SOLID) {
+        Modifier.background(Color(start))
+    } else {
+        // Même dégradé diagonal que le widget réel.
+        Modifier.background(Brush.linearGradient(listOf(Color(start), Color(end))))
+    }
+
     Box(
         modifier = modifier
             .size(widthDp.dp, heightDp.dp)
             .clip(shape)
-            .background(Color(config.backgroundColor).copy(alpha = config.opacity)),
+            .then(fill),
         contentAlignment = Alignment.Center,
     ) {
         when (config.contentType) {
-            WidgetContentType.APP_SHORTCUT -> ShortcutPreview(
-                config = config,
-                icon = icon,
-                widthDp = widthDp,
-                heightDp = heightDp,
-                // La visibilité du nom se décide sur la taille réelle du widget, pas sur celle de la miniature.
-                labelVisible = WidgetStyle.isLabelVisible(config.showLabel, sizeOption.heightDp.toFloat()),
-                textColor = textColor,
-            )
+            WidgetContentType.APP_SHORTCUT -> if (config.layout == WidgetLayout.PILL) {
+                PillPreview(config, icon, sizeOption.heightDp.toFloat(), scale, textColor, search = false)
+            } else {
+                ShortcutPreview(
+                    config = config,
+                    icon = icon,
+                    widthDp = widthDp,
+                    heightDp = heightDp,
+                    // La visibilité du nom se décide sur la taille réelle du widget, pas sur celle de la miniature.
+                    labelVisible = WidgetStyle.isLabelVisible(config.showLabel, sizeOption.heightDp.toFloat()),
+                    textColor = textColor,
+                )
+            }
+            WidgetContentType.SEARCH_BAR -> PillPreview(config, icon, sizeOption.heightDp.toFloat(), scale, textColor, search = true)
+            WidgetContentType.APP_GRID -> GridPreview(config, icons, sizeOption, scale, textColor)
+            WidgetContentType.DEVICE_STATUS -> DevicePreview(config, sizeOption, scale, textColor)
+            WidgetContentType.WEATHER_CLOCK -> Unit
             WidgetContentType.CLOCK_DATE -> ClockPreview(config, widthDp, heightDp, textColor)
             WidgetContentType.NOTES_LIST, WidgetContentType.NEWS_FEED, WidgetContentType.MAIL_INBOX ->
                 NotesPreview(config, notes, widthDp, heightDp, textColor)

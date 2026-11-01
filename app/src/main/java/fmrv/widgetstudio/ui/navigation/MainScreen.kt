@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material3.MaterialTheme
@@ -31,26 +32,32 @@ import fmrv.widgetstudio.ui.apps.AppsScreen
 import fmrv.widgetstudio.ui.components.FloatingNavBar
 import fmrv.widgetstudio.ui.components.NavItem
 import fmrv.widgetstudio.ui.editor.EditorScreen
+import fmrv.widgetstudio.ui.gallery.GalleryScreen
+import fmrv.widgetstudio.ui.gallery.Templates
 import fmrv.widgetstudio.ui.home.HomeScreen
 import fmrv.widgetstudio.ui.settings.SettingsScreen
 import fmrv.widgetstudio.viewmodel.EditorViewModel
 
 object Routes {
+    const val GALLERY = "gallery"
     const val HOME = "home"
     const val APPS = "apps"
     const val SETTINGS = "settings"
-    const val EDITOR = "editor?id={id}&pkg={pkg}"
+    const val EDITOR = "editor?id={id}&pkg={pkg}&tpl={tpl}"
 
     private const val ARG_ID = "id"
     private const val ARG_PKG = "pkg"
+    private const val ARG_TPL = "tpl"
 
-    fun editor(widgetId: Int = 0, packageName: String? = null): String = buildString {
+    fun editor(widgetId: Int = 0, packageName: String? = null, templateId: String? = null): String = buildString {
         append("editor?$ARG_ID=$widgetId")
         if (packageName != null) append("&$ARG_PKG=${Uri.encode(packageName)}")
+        if (templateId != null) append("&$ARG_TPL=${Uri.encode(templateId)}")
     }
 }
 
 private val topLevelItems = listOf(
+    NavItem(Routes.GALLERY, R.string.nav_gallery, Icons.Outlined.Dashboard),
     NavItem(Routes.HOME, R.string.nav_widgets, Icons.Outlined.Widgets),
     NavItem(Routes.APPS, R.string.nav_apps, Icons.Outlined.Apps),
     NavItem(Routes.SETTINGS, R.string.nav_settings, Icons.Outlined.Settings),
@@ -88,21 +95,30 @@ fun MainScreen() {
     ) { inner ->
         NavHost(
             navController = navController,
-            startDestination = Routes.HOME,
+            startDestination = Routes.GALLERY,
             modifier = Modifier.padding(bottom = inner.calculateBottomPadding()),
             enterTransition = { fadeIn(tween(220)) + slideInVertically(tween(300)) { it / 14 } },
             exitTransition = { fadeOut(tween(160)) },
             popEnterTransition = { fadeIn(tween(220)) },
             popExitTransition = { fadeOut(tween(160)) + slideOutVertically(tween(260)) { it / 14 } },
         ) {
+            composable(Routes.GALLERY) {
+                GalleryScreen(onTemplate = { template -> navController.navigate(Routes.editor(templateId = template.id)) })
+            }
             composable(Routes.HOME) {
                 HomeScreen(
-                    onCreateWidget = { navController.navigate(Routes.editor()) },
+                    onCreateWidget = {
+                        navController.navigate(Routes.GALLERY) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                     onEditWidget = { id -> navController.navigate(Routes.editor(widgetId = id)) },
                 )
             }
             composable(Routes.APPS) {
-                AppsScreen(onAppSelected = { pkg -> navController.navigate(Routes.editor(packageName = pkg)) })
+                AppsScreen(onAppSelected = { pkg -> navController.navigate(Routes.editor(packageName = pkg, templateId = "icon")) })
             }
             composable(Routes.SETTINGS) { SettingsScreen() }
             composable(
@@ -117,6 +133,11 @@ fun MainScreen() {
                         nullable = true
                         defaultValue = null
                     },
+                    navArgument("tpl") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
                 ),
             ) { entry ->
                 val viewModel: EditorViewModel = hiltViewModel()
@@ -124,6 +145,7 @@ fun MainScreen() {
                     viewModel = viewModel,
                     widgetId = entry.arguments?.getInt("id") ?: 0,
                     presetPackage = entry.arguments?.getString("pkg"),
+                    template = Templates.byId(entry.arguments?.getString("tpl")),
                     onClose = { navController.popBackStack() },
                     onSaved = { navController.popBackStack() },
                 )

@@ -60,4 +60,38 @@ class WidgetStyleTest {
         assertEquals("EEE d MMM", WidgetStyle.datePattern(100f))
         assertEquals("EEEE d MMMM", WidgetStyle.datePattern(300f))
     }
+
+    @Test
+    fun `la pastille d'une pilule reste bornee`() {
+        assertEquals(28f, WidgetStyle.pillCircleDp(20f))
+        assertEquals(64f, WidgetStyle.pillCircleDp(400f))
+        assertEquals(56f, WidgetStyle.pillCircleDp(72f))
+    }
+
+    @Test
+    fun `la grille compte trois ou quatre colonnes selon la largeur`() {
+        assertEquals(3, WidgetStyle.gridColumns(160f))
+        assertEquals(4, WidgetStyle.gridColumns(320f))
+    }
+
+    @Test
+    fun `le nombre de lignes de la grille est arrondi au-dessus`() {
+        assertEquals(0, WidgetStyle.gridRows(0, 4))
+        assertEquals(1, WidgetStyle.gridRows(4, 4))
+        assertEquals(2, WidgetStyle.gridRows(5, 4))
+        assertEquals(3, WidgetStyle.gridRows(7, 3))
+    }
+
+    @Test
+    fun `les icones du dossier restent dans leurs bornes`() {
+        assertEquals(24f, WidgetStyle.gridIconDp(40f, 40f, 4, 2, labelVisible = false))
+        assertEquals(52f, WidgetStyle.gridIconDp(1000f, 1000f, 4, 2, labelVisible = false))
+    }
+
+    @Test
+    fun `le nom du dossier n'est affiche que sur un widget assez haut`() {
+        assertTrue(WidgetStyle.showGridLabel(true, 160f))
+        assertFalse(WidgetStyle.showGridLabel(true, 100f))
+        assertFalse(WidgetStyle.showGridLabel(false, 300f))
+    }
 }

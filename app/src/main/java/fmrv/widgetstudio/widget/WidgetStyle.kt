@@ -37,6 +37,25 @@ object WidgetStyle {
 
     fun showNotesHeader(heightDp: Float): Boolean = heightDp >= 80f
 
+    /** Diamètre de la pastille ronde d'une pilule ou d'une barre de recherche. */
+    fun pillCircleDp(heightDp: Float): Float = (heightDp - 16f).coerceIn(28f, 64f)
+
+    fun pillTextSp(circleDp: Float): Float = (circleDp * 0.42f).coerceIn(14f, 28f)
+
+    /** 4 colonnes d'icônes sur un widget large, 3 sinon. */
+    fun gridColumns(widthDp: Float): Int = if (widthDp >= 200f) 4 else 3
+
+    fun gridRows(count: Int, columns: Int): Int = if (count <= 0) 0 else (count + columns - 1) / columns
+
+    /** Taille des icônes d'un dossier : tient dans la grille avec un peu d'air autour. */
+    fun gridIconDp(widthDp: Float, heightDp: Float, columns: Int, rows: Int, labelVisible: Boolean): Float {
+        val cellW = (widthDp - 20f) / columns
+        val cellH = (heightDp - 20f - if (labelVisible) 18f else 0f) / rows.coerceAtLeast(1)
+        return (minOf(cellW, cellH) * 0.74f).coerceIn(24f, 52f)
+    }
+
+    fun showGridLabel(showLabel: Boolean, heightDp: Float): Boolean = showLabel && heightDp >= 140f
+
     fun timePattern(use24Hour: Boolean): String = if (use24Hour) "HH:mm" else "h:mm"
 
     fun datePattern(widthDp: Float): String = if (widthDp >= WIDE_DATE_MIN_WIDTH) "EEEE d MMMM" else "EEE d MMM"
