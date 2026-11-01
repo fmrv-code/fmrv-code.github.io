@@ -2,7 +2,17 @@ package fmrv.widgetstudio.domain.model
 
 enum class WidgetShape { SQUARE, ROUNDED, PILL }
 
-enum class WidgetContentType { APP_SHORTCUT, CLOCK_DATE, NOTES_LIST }
+enum class WidgetContentType {
+    APP_SHORTCUT,
+    CLOCK_DATE,
+    NOTES_LIST,
+    NEWS_FEED,
+    MAIL_INBOX,
+    ;
+
+    /** Types dont le contenu est une liste alimentée par un service distant (cache local + actualisation). */
+    val isList: Boolean get() = this == NOTES_LIST || this == NEWS_FEED || this == MAIL_INBOX
+}
 
 enum class WidgetFont { SANS, SERIF, MONO, CURSIVE }
 

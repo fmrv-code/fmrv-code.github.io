@@ -18,12 +18,11 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import fmrv.widgetstudio.domain.model.FailureReason
 import fmrv.widgetstudio.domain.model.RefreshResult
-import fmrv.widgetstudio.domain.model.WidgetContentType
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.first
 
 /**
- * Actualise le cache des notes puis redessine les widgets.
+ * Actualise le cache des widgets de type liste (notes, actualités, e-mails) puis les redessine.
  * Périodique (≈ 30 min, réseau requis, batterie non faible) ou à la demande.
  */
 class NotesRefreshWorker(
@@ -35,25 +34,24 @@ class NotesRefreshWorker(
         val entryPoint = applicationContext.widgetEntryPoint()
         val periodic = inputData.getBoolean(KEY_PERIODIC, false)
 
-        val hasNotesWidget = entryPoint.widgetRepository().observeWidgets().first()
-            .any { it.contentType == WidgetContentType.NOTES_LIST }
-        if (!hasNotesWidget) {
-            // Plus aucun widget de notes : inutile de continuer à se réveiller. Le travail est replanifié au prochain lancement.
+        val listTypes = entryPoint.widgetRepository().observeWidgets().first()
+            .map { it.contentType }
+            .filter { it.isList }
+            .toSet()
+        if (listTypes.isEmpty()) {
+            // Plus aucun widget de liste : inutile de continuer à se réveiller. Le travail est replanifié au prochain lancement.
             if (periodic) WorkManager.getInstance(applicationContext).cancelUniqueWork(PERIODIC_NAME)
             return Result.success()
         }
 
-        return when (val result = entryPoint.notesRepository().refresh()) {
-            is RefreshResult.Success, RefreshResult.NotConnected -> {
-                UniversalWidget().updateAll(applicationContext)
-                Result.success()
-            }
-            is RefreshResult.Failure -> {
-                UniversalWidget().updateAll(applicationContext)
-                // Seule une panne réseau mérite une nouvelle tentative ; le reste exige une action de l'utilisateur.
-                if (result.reason == FailureReason.NETWORK) Result.retry() else Result.success()
-            }
+        var retry = false
+        for (type in listTypes) {
+            val result = entryPoint.listSources().forType(type)?.refresh()
+            // Seule une panne réseau mérite une nouvelle tentative ; le reste exige une action de l'utilisateur.
+            if (result is RefreshResult.Failure && result.reason == FailureReason.NETWORK) retry = true
         }
+        UniversalWidget().updateAll(applicationContext)
+        return if (retry) Result.retry() else Result.success()
     }
 
     companion object {

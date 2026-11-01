@@ -92,7 +92,8 @@ fun WidgetPreview(
                 textColor = textColor,
             )
             WidgetContentType.CLOCK_DATE -> ClockPreview(config, widthDp, heightDp, textColor)
-            WidgetContentType.NOTES_LIST -> NotesPreview(config, notes, widthDp, heightDp, textColor)
+            WidgetContentType.NOTES_LIST, WidgetContentType.NEWS_FEED, WidgetContentType.MAIL_INBOX ->
+                NotesPreview(config, notes, widthDp, heightDp, textColor)
         }
     }
 }
@@ -176,12 +177,24 @@ private fun NotesPreview(
     heightDp: Float,
     textColor: Color,
 ) {
-    val samples = listOf(
-        NoteSummary("1", stringResource(R.string.preview_note_1), stringResource(R.string.preview_note_1_snippet), 0L),
-        NoteSummary("2", stringResource(R.string.preview_note_2), stringResource(R.string.preview_note_2_snippet), 0L),
-        NoteSummary("3", stringResource(R.string.preview_note_3), stringResource(R.string.preview_note_3_snippet), 0L),
-        NoteSummary("4", stringResource(R.string.preview_note_4), "", 0L),
-    )
+    val samples = when (config.contentType) {
+        WidgetContentType.NEWS_FEED -> listOf(
+            NoteSummary("1", stringResource(R.string.preview_news_1), stringResource(R.string.preview_news_1_snippet), 0L),
+            NoteSummary("2", stringResource(R.string.preview_news_2), stringResource(R.string.preview_news_2_snippet), 0L),
+            NoteSummary("3", stringResource(R.string.preview_news_3), "", 0L),
+        )
+        WidgetContentType.MAIL_INBOX -> listOf(
+            NoteSummary("1", stringResource(R.string.preview_mail_1), stringResource(R.string.preview_mail_1_from), 0L),
+            NoteSummary("2", stringResource(R.string.preview_mail_2), stringResource(R.string.preview_mail_2_from), 0L),
+            NoteSummary("3", stringResource(R.string.preview_mail_3), stringResource(R.string.preview_mail_3_from), 0L),
+        )
+        else -> listOf(
+            NoteSummary("1", stringResource(R.string.preview_note_1), stringResource(R.string.preview_note_1_snippet), 0L),
+            NoteSummary("2", stringResource(R.string.preview_note_2), stringResource(R.string.preview_note_2_snippet), 0L),
+            NoteSummary("3", stringResource(R.string.preview_note_3), stringResource(R.string.preview_note_3_snippet), 0L),
+            NoteSummary("4", stringResource(R.string.preview_note_4), "", 0L),
+        )
+    }
     val shown = notes.ifEmpty { samples }
     val titleSp = WidgetStyle.notesTitleSizeSp(widthDp, heightDp)
     val showSnippet = WidgetStyle.showNoteSnippet(heightDp)
@@ -191,7 +204,7 @@ private fun NotesPreview(
         if (WidgetStyle.showNotesHeader(heightDp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = config.name.ifBlank { stringResource(R.string.type_notes) },
+                    text = config.name.ifBlank { stringResource(listTitle(config.contentType)) },
                     color = textColor,
                     fontSize = (titleSp + 2f).sp,
                     fontWeight = FontWeight.Bold,
@@ -229,3 +242,9 @@ private fun NotesPreview(
 }
 
 private const val MAX_PREVIEW_NOTES = 6
+
+private fun listTitle(type: WidgetContentType): Int = when (type) {
+    WidgetContentType.NEWS_FEED -> R.string.type_news
+    WidgetContentType.MAIL_INBOX -> R.string.type_mail
+    else -> R.string.type_notes
+}

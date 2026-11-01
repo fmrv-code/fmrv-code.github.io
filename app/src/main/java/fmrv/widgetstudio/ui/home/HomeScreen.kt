@@ -134,6 +134,8 @@ private fun WidgetCard(config: WidgetConfig, viewModel: HomeViewModel, onClick: 
                         WidgetContentType.APP_SHORTCUT -> config.targetLabel ?: stringResource(R.string.type_shortcut)
                         WidgetContentType.CLOCK_DATE -> stringResource(R.string.type_clock)
                         WidgetContentType.NOTES_LIST -> stringResource(R.string.type_notes)
+                        WidgetContentType.NEWS_FEED -> stringResource(R.string.type_news)
+                        WidgetContentType.MAIL_INBOX -> stringResource(R.string.type_mail)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

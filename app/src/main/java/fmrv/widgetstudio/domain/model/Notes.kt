@@ -6,6 +6,8 @@ data class NoteSummary(
     val title: String,
     val snippet: String,
     val updatedMillis: Long,
+    /** Adresse à ouvrir au toucher (articles) ; `null` si l'élément s'ouvre via son application. */
+    val link: String? = null,
 )
 
 /** Dernier état connu des notes, lu depuis le cache local (jamais depuis le réseau). */
@@ -26,3 +28,4 @@ sealed interface RefreshResult {
 }
 
 const val JOPLIN_PACKAGE = "net.cozic.joplin"
+const val GMAIL_PACKAGE = "com.google.android.gm"

@@ -37,6 +37,8 @@
     <string name="type_shortcut">Raccourci d’application</string>
     <string name="type_clock">Horloge et date</string>
     <string name="type_notes">Notes Joplin</string>
+    <string name="type_news">Franceinfo</string>
+    <string name="type_mail">Gmail</string>
 
     <string name="app_choose">Choisir une application</string>
     <string name="app_change">Changer</string>
@@ -68,7 +70,7 @@
     <string name="settings_dynamic">Couleurs dynamiques</string>
     <string name="settings_dynamic_hint">Utilise les couleurs de votre fond d’écran (Android 12 et plus)</string>
     <string name="settings_haptics">Retour haptique</string>
-    <string name="settings_about">Widget Studio crée des widgets personnalisés pour vos applications. L’application ne collecte aucune donnée. Le réseau n’est utilisé que si vous connectez OneDrive pour afficher vos notes Joplin.</string>
+    <string name="settings_about">Widget Studio crée des widgets personnalisés pour vos applications. L’application ne collecte aucune donnée. Le réseau n’est utilisé que pour les widgets que vous créez : notes Joplin (OneDrive), actualités Franceinfo, e-mails Gmail.</string>
 
     <string name="error_save">Impossible d’enregistrer le widget.</string>
     <string name="error_pin_unsupported">Votre écran d’accueil ne permet pas l’ajout direct. Ajoutez « Widget Studio » depuis le menu des widgets (appui long sur l’écran d’accueil).</string>
@@ -113,4 +115,41 @@
     <string name="joplin_error_auth">Session expirée ou refusée. Reconnectez-vous.</string>
     <string name="joplin_error_folder">Dossier introuvable sur OneDrive. Vérifiez le chemin (par défaut Apps/Joplin).</string>
     <string name="joplin_error_unknown">Erreur inattendue pendant la lecture des notes.</string>
+
+    <string name="news_source_hint">Affiche les gros titres Franceinfo « À la une ». Un appui sur un titre ouvre l’article. Aucun compte n’est nécessaire.</string>
+    <string name="mail_source_hint">Affiche vos e-mails Gmail non lus (expéditeur et objet). Connectez-vous d’abord dans Réglages. Attention : ces informations sont visibles sur l’écran d’accueil.</string>
+    <string name="mail_not_connected">Connectez Gmail dans Widget Studio : Réglages › Gmail</string>
+    <string name="preview_news_1">Les titres du jour s’affichent ici</string>
+    <string name="preview_news_1_snippet">Un résumé de l’article apparaît sous le titre</string>
+    <string name="preview_news_2">Un deuxième article à la une</string>
+    <string name="preview_news_2_snippet">Touchez un titre pour lire l’article</string>
+    <string name="preview_news_3">Et un troisième titre</string>
+    <string name="preview_mail_1">Votre facture est disponible</string>
+    <string name="preview_mail_1_from">Service client</string>
+    <string name="preview_mail_2">Rendez-vous de jeudi</string>
+    <string name="preview_mail_2_from">Camille Martin</string>
+    <string name="preview_mail_3">Bienvenue !</string>
+    <string name="preview_mail_3_from">Équipe Widget Studio</string>
+
+    <string name="news_title">Franceinfo</string>
+    <string name="news_intro">Les titres viennent du flux RSS public de la rédaction. Si le widget n’affiche rien, l’adresse du flux a peut-être changé : saisissez la nouvelle ci-dessous, sinon laissez vide.</string>
+    <string name="news_feed_url">Adresse du flux RSS (facultatif)</string>
+    <string name="news_test">Tester et actualiser</string>
+    <string name="news_refresh_ok">%1$d articles récupérés.</string>
+    <string name="news_error_feed">Flux introuvable ou illisible. Vérifiez l’adresse.</string>
+
+    <string name="mail_title">Gmail</string>
+    <string name="mail_intro">Affiche vos e-mails non lus dans un widget. Lecture seule : Widget Studio se connecte en IMAP, ne modifie ni ne marque aucun message, et ne télécharge que l’expéditeur, l’objet et la date.</string>
+    <string name="mail_setup_steps">Configuration (une seule fois) :\n1. Activez la validation en 2 étapes sur votre compte Google.\n2. Sur myaccount.google.com/apppasswords, créez un mot de passe d’application nommé « Widget Studio ».\n3. Saisissez votre adresse Gmail et ce mot de passe ci-dessous. Il est chiffré sur ce téléphone ; supprimez-le à tout moment depuis votre compte Google.</string>
+    <string name="mail_address">Adresse Gmail</string>
+    <string name="mail_app_password">Mot de passe d’application</string>
+    <string name="mail_connect">Se connecter à Gmail</string>
+    <string name="mail_status_connected">Connecté : %1$s · %2$d non lus</string>
+    <string name="mail_status_connected_empty">Connecté : %1$s</string>
+    <string name="mail_connected">Connecté à Gmail.</string>
+    <string name="mail_disconnected">Déconnecté. Mot de passe et e-mails effacés de l’appareil.</string>
+    <string name="mail_need_credentials">Saisissez votre adresse Gmail et le mot de passe d’application.</string>
+    <string name="mail_refresh_ok">%1$d e-mails non lus.</string>
+    <string name="mail_error_auth">Identifiants refusés. Vérifiez l’adresse et le mot de passe d’application (pas votre mot de passe habituel).</string>
+    <string name="mail_error_unknown">Impossible de lire Gmail. Vérifiez que l’accès IMAP est activé dans les réglages Gmail.</string>
 </resources>

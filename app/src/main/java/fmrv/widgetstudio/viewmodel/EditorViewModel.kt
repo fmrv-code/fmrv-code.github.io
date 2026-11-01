@@ -15,7 +15,7 @@ import fmrv.widgetstudio.domain.model.WidgetContentType
 import fmrv.widgetstudio.domain.model.WidgetSizeOption
 import fmrv.widgetstudio.domain.repository.AppIconProvider
 import fmrv.widgetstudio.domain.repository.AppsSource
-import fmrv.widgetstudio.domain.repository.NotesRepository
+import fmrv.widgetstudio.domain.repository.ListSources
 import fmrv.widgetstudio.domain.repository.WidgetPinner
 import fmrv.widgetstudio.domain.repository.WidgetRepository
 import fmrv.widgetstudio.domain.repository.WidgetUpdater
@@ -62,7 +62,7 @@ class EditorViewModel @Inject constructor(
     private val icons: AppIconProvider,
     private val updater: WidgetUpdater,
     private val pinner: WidgetPinner,
-    private val notes: NotesRepository,
+    private val sources: ListSources,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(EditorUiState())
@@ -85,11 +85,6 @@ class EditorViewModel @Inject constructor(
         viewModelScope.launch {
             val apps = runCatching { appsSource.loadApps() }.getOrDefault(emptyList())
             _state.update { it.copy(apps = apps) }
-        }
-        viewModelScope.launch {
-            // Aperçu : vraies notes si le cache en contient, sinon l'interface affichera des exemples.
-            val cached = runCatching { notes.snapshot().notes }.getOrDefault(emptyList())
-            _state.update { it.copy(previewNotes = cached) }
         }
         viewModelScope.launch { initConfig(widgetId, presetPackage) }
     }
@@ -126,6 +121,19 @@ class EditorViewModel @Inject constructor(
     private suspend fun setConfig(config: WidgetConfig) {
         val icon = loadIcon(config.targetPackage)
         _state.update { it.copy(config = config, previewIcon = icon, loading = false) }
+        loadPreviewItems(config.contentType)
+    }
+
+    /** Aperçu : vrais éléments si le cache en contient, sinon l'interface affichera des exemples. */
+    private suspend fun loadPreviewItems(type: WidgetContentType) {
+        val cached = try {
+            sources.forType(type)?.snapshot()?.notes.orEmpty()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emptyList()
+        }
+        _state.update { if (it.config.contentType == type) it.copy(previewNotes = cached) else it }
     }
 
     private suspend fun loadIcon(packageName: String?): ImageBitmap? =
@@ -136,7 +144,13 @@ class EditorViewModel @Inject constructor(
         icons.icon(packageName, LIST_ICON_PX)?.asImageBitmap()
 
     fun update(transform: (WidgetConfig) -> WidgetConfig) {
+        val before = _state.value.config.contentType
         _state.update { it.copy(config = transform(it.config)) }
+        val after = _state.value.config.contentType
+        if (after != before) {
+            _state.update { it.copy(previewNotes = emptyList()) }
+            viewModelScope.launch { loadPreviewItems(after) }
+        }
     }
 
     fun setPinSize(size: WidgetSizeOption) {

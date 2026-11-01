@@ -78,17 +78,15 @@ class UniversalWidget : GlanceAppWidget() {
             ?.targetPackage
             ?.let { entryPoint.iconProvider().icon(it, iconPx) }
 
-        val notes = if (config?.contentType == WidgetContentType.NOTES_LIST) {
-            loadNotes(context, entryPoint.notesRepository())
-        } else {
-            null
-        }
+        val notes = config?.contentType
+            ?.takeIf { it.isList }
+            ?.let { type -> entryPoint.listSources().forType(type)?.let { loadNotes(context, it) } }
 
         provideContent { UniversalWidgetContent(appWidgetId, config, icon, notes) }
     }
 
     /** Lit le cache (sans réseau). Si le cache est vide et ancien, déclenche une actualisation en arrière-plan. */
-    private suspend fun loadNotes(context: Context, repository: fmrv.widgetstudio.domain.repository.NotesRepository): NotesSnapshot {
+    private suspend fun loadNotes(context: Context, repository: fmrv.widgetstudio.domain.repository.ItemsRepository): NotesSnapshot {
         val snapshot = repository.snapshot()
         val stale = System.currentTimeMillis() - snapshot.refreshedAtMillis > EMPTY_CACHE_RETRY_MS
         if (snapshot.connected && snapshot.notes.isEmpty() && stale) NotesRefreshWorker.enqueueNow(context)
@@ -129,8 +127,8 @@ private fun UniversalWidgetContent(appWidgetId: Int, config: WidgetConfig?, icon
     val clickIntent = when (config.contentType) {
         WidgetContentType.APP_SHORTCUT -> launchIntent ?: configureIntent(context, appWidgetId)
         WidgetContentType.CLOCK_DATE -> launchIntent
-        // Chaque note a son propre clic ; le titre du widget ouvre Joplin.
-        WidgetContentType.NOTES_LIST -> null
+        // Chaque élément de liste a son propre clic ; le titre du widget ouvre le service correspondant.
+        WidgetContentType.NOTES_LIST, WidgetContentType.NEWS_FEED, WidgetContentType.MAIL_INBOX -> null
     }
     val clickModifier = if (clickIntent != null) {
         GlanceModifier.clickable(actionStartActivity(clickIntent))
@@ -146,7 +144,8 @@ private fun UniversalWidgetContent(appWidgetId: Int, config: WidgetConfig?, icon
         when (config.contentType) {
             WidgetContentType.APP_SHORTCUT -> AppShortcutContent(config, icon, widthDp, heightDp)
             WidgetContentType.CLOCK_DATE -> ClockContent(context, config, widthDp, heightDp)
-            WidgetContentType.NOTES_LIST -> NotesContent(context, config, notes, widthDp, heightDp)
+            WidgetContentType.NOTES_LIST, WidgetContentType.NEWS_FEED, WidgetContentType.MAIL_INBOX ->
+                NotesContent(context, config, notes, widthDp, heightDp)
         }
     }
 }
@@ -300,17 +299,18 @@ private fun NotesContent(
     val textColor = Color(config.textColor)
     val titleSp = WidgetStyle.notesTitleSizeSp(widthDp, heightDp)
     val font = glanceFont(config.font)
-    val joplinIntent = JoplinLinks.launchIntent(context)
+    val type = config.contentType
+    val headerIntent = ListLinks.headerIntent(context, type)
 
     Column(modifier = GlanceModifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
         if (WidgetStyle.showNotesHeader(heightDp)) {
             Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 val titleModifier = GlanceModifier.defaultWeight()
                 Text(
-                    text = config.name.ifBlank { context.getString(R.string.type_notes) },
+                    text = config.name.ifBlank { context.getString(ListLinks.defaultTitle(type)) },
                     maxLines = 1,
-                    modifier = if (joplinIntent != null) {
-                        titleModifier.clickable(actionStartActivity(joplinIntent))
+                    modifier = if (headerIntent != null) {
+                        titleModifier.clickable(actionStartActivity(headerIntent))
                     } else {
                         titleModifier
                     },
@@ -332,16 +332,17 @@ private fun NotesContent(
 
         val notes = snapshot?.notes.orEmpty()
         when {
-            snapshot == null || !snapshot.connected -> NotesHint(context.getString(R.string.notes_not_connected), textColor, font, titleSp)
+            snapshot == null || !snapshot.connected ->
+                NotesHint(context.getString(ListLinks.notConnectedHint(type)), textColor, font, titleSp)
             notes.isEmpty() -> NotesHint(context.getString(R.string.notes_empty), textColor, font, titleSp)
             else -> {
-                val deepLink = JoplinLinks.supportsOpenNote(context)
+                val deepLink = type == WidgetContentType.NOTES_LIST && JoplinLinks.supportsOpenNote(context)
                 val showSnippet = WidgetStyle.showNoteSnippet(heightDp)
                 val snippetSp = WidgetStyle.notesSnippetSizeSp(titleSp)
                 val now = System.currentTimeMillis()
                 LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
                     items(notes, itemId = { it.id.hashCode().toLong() }) { note ->
-                        NoteRow(context, note, deepLink, showSnippet, now, textColor, font, titleSp, snippetSp)
+                        NoteRow(context, type, note, deepLink, showSnippet, now, textColor, font, titleSp, snippetSp)
                     }
                 }
             }
@@ -352,6 +353,7 @@ private fun NotesContent(
 @Composable
 private fun NoteRow(
     context: Context,
+    type: WidgetContentType,
     note: NoteSummary,
     deepLink: Boolean,
     showSnippet: Boolean,
@@ -361,7 +363,7 @@ private fun NoteRow(
     titleSp: Float,
     snippetSp: Float,
 ) {
-    val intent = JoplinLinks.noteIntent(context, note, deepLink)
+    val intent = ListLinks.itemIntent(context, type, note, deepLink)
     val base = GlanceModifier.fillMaxWidth().padding(vertical = 4.dp)
     Column(modifier = if (intent != null) base.clickable(actionStartActivity(intent)) else base) {
         Text(

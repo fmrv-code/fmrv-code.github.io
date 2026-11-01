@@ -191,29 +191,41 @@ fun EditorScreen(
                                 label = stringResource(R.string.type_clock),
                                 onClick = { haptics.tick(); viewModel.update { it.copy(contentType = WidgetContentType.CLOCK_DATE) } },
                             )
-                            val notesName = stringResource(R.string.type_notes)
-                            ChoiceChip(
-                                selected = config.contentType == WidgetContentType.NOTES_LIST,
-                                label = notesName,
-                                onClick = {
-                                    haptics.tick()
-                                    viewModel.update {
-                                        it.copy(contentType = WidgetContentType.NOTES_LIST, name = it.name.ifBlank { notesName })
-                                    }
-                                },
+                            val defaultNames = listOf(
+                                stringResource(R.string.type_notes),
+                                stringResource(R.string.type_news),
+                                stringResource(R.string.type_mail),
                             )
+                            listOf(
+                                WidgetContentType.NOTES_LIST to defaultNames[0],
+                                WidgetContentType.NEWS_FEED to defaultNames[1],
+                                WidgetContentType.MAIL_INBOX to defaultNames[2],
+                            ).forEach { (type, typeName) ->
+                                ChoiceChip(
+                                    selected = config.contentType == type,
+                                    label = typeName,
+                                    onClick = {
+                                        haptics.tick()
+                                        viewModel.update {
+                                            // Le nom suit le type tant qu'il est vide ou égal à un nom par défaut.
+                                            val followsType = it.name.isBlank() || it.name in defaultNames
+                                            it.copy(contentType = type, name = if (followsType) typeName else it.name)
+                                        }
+                                    },
+                                )
+                            }
                         }
                     }
 
-                    if (config.contentType == WidgetContentType.NOTES_LIST) {
+                    if (config.contentType.isList) {
                         Text(
-                            text = stringResource(R.string.notes_source_hint),
+                            text = stringResource(listHint(config.contentType)),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
 
-                    if (config.contentType != WidgetContentType.NOTES_LIST) Section(
+                    if (!config.contentType.isList) Section(
                         if (config.contentType == WidgetContentType.APP_SHORTCUT) R.string.section_app else R.string.section_app_optional,
                     ) {
                         Surface(
@@ -328,7 +340,7 @@ fun EditorScreen(
                         WidgetContentType.APP_SHORTCUT -> SwitchRow(R.string.option_show_label, config.showLabel) { value ->
                             haptics.tick(); viewModel.update { it.copy(showLabel = value) }
                         }
-                        WidgetContentType.NOTES_LIST -> Unit
+                        WidgetContentType.NOTES_LIST, WidgetContentType.NEWS_FEED, WidgetContentType.MAIL_INBOX -> Unit
                         WidgetContentType.CLOCK_DATE -> {
                             SwitchRow(R.string.option_24h, config.use24Hour) { value ->
                                 haptics.tick(); viewModel.update { it.copy(use24Hour = value) }
@@ -397,6 +409,13 @@ private fun SwitchRow(@StringRes label: Int, checked: Boolean, onChange: (Boolea
         Text(stringResource(label), modifier = Modifier.weight(1f))
         Switch(checked = checked, onCheckedChange = null)
     }
+}
+
+@StringRes
+private fun listHint(type: WidgetContentType): Int = when (type) {
+    WidgetContentType.NEWS_FEED -> R.string.news_source_hint
+    WidgetContentType.MAIL_INBOX -> R.string.mail_source_hint
+    else -> R.string.notes_source_hint
 }
 
 @StringRes

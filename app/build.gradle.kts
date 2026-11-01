@@ -95,6 +95,8 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
 
     testImplementation(libs.junit)
+    // Implémentation réelle de XmlPullParser : les stubs d'android.jar ne fonctionnent pas en test unitaire.
+    testImplementation(libs.kxml2)
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 }

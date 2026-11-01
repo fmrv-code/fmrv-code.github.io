@@ -14,7 +14,8 @@ import fmrv.widgetstudio.domain.model.WidgetContentType
 import fmrv.widgetstudio.domain.model.WidgetSizeOption
 import fmrv.widgetstudio.domain.repository.AppIconProvider
 import fmrv.widgetstudio.domain.repository.AppsSource
-import fmrv.widgetstudio.domain.repository.NotesRepository
+import fmrv.widgetstudio.domain.repository.ItemsRepository
+import fmrv.widgetstudio.domain.repository.ListSources
 import fmrv.widgetstudio.domain.repository.WidgetPinner
 import fmrv.widgetstudio.domain.repository.WidgetUpdater
 import kotlin.test.AfterTest
@@ -45,10 +46,14 @@ class EditorViewModelTest {
         override suspend fun icon(packageName: String, sizePx: Int): Bitmap? = null
     }
 
-    private class FakeNotes(private val cached: List<NoteSummary> = emptyList()) : NotesRepository {
+    private class FakeNotes(private val cached: List<NoteSummary> = emptyList()) : ItemsRepository {
         override suspend fun snapshot() = NotesSnapshot(connected = true, notes = cached, refreshedAtMillis = 1L)
         override suspend fun refresh(): RefreshResult = RefreshResult.Success(cached.size)
         override suspend fun clear() = Unit
+    }
+
+    private class FakeSources(private val cached: List<NoteSummary>) : ListSources {
+        override fun forType(type: WidgetContentType): ItemsRepository? = if (type.isList) FakeNotes(cached) else null
     }
 
     private class RecordingUpdater : WidgetUpdater {
@@ -80,7 +85,7 @@ class EditorViewModelTest {
         icons = NoIcons(),
         updater = updater,
         pinner = pinner,
-        notes = FakeNotes(cachedNotes),
+        sources = FakeSources(cachedNotes),
     )
 
     @BeforeTest
@@ -248,8 +253,33 @@ class EditorViewModelTest {
     fun `l'apercu reprend les notes en cache`() {
         val cached = listOf(NoteSummary("a", "Courses", "Pain", 10L))
         val vm = viewModel(cachedNotes = cached)
-
         vm.start(widgetId = 0, presetPackage = null)
+
+        vm.update { it.copy(contentType = WidgetContentType.NOTES_LIST) }
+
+        assertEquals(cached, vm.state.value.previewNotes)
+    }
+
+    @Test
+    fun `les actualites et les e-mails se passent aussi d'application`() {
+        val vm = viewModel()
+        vm.start(widgetId = 0, presetPackage = null)
+
+        vm.update { it.copy(contentType = WidgetContentType.NEWS_FEED) }
+        assertTrue(vm.state.value.canSave)
+
+        vm.update { it.copy(contentType = WidgetContentType.MAIL_INBOX) }
+        assertTrue(vm.state.value.canSave)
+    }
+
+    @Test
+    fun `changer de type recharge l'apercu`() {
+        val cached = listOf(NoteSummary("a", "Titre", "Résumé", 10L))
+        val vm = viewModel(cachedNotes = cached)
+        vm.start(widgetId = 0, presetPackage = null)
+        assertTrue(vm.state.value.previewNotes.isEmpty()) // type par défaut : raccourci, pas de liste
+
+        vm.update { it.copy(contentType = WidgetContentType.NEWS_FEED) }
 
         assertEquals(cached, vm.state.value.previewNotes)
     }
