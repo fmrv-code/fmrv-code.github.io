@@ -6,6 +6,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import fmrv.widgetstudio.domain.repository.AppIconProvider
+import fmrv.widgetstudio.domain.repository.NotesRepository
 import fmrv.widgetstudio.domain.repository.WidgetRepository
 import fmrv.widgetstudio.domain.repository.WidgetUpdater
 
@@ -18,6 +19,8 @@ interface WidgetEntryPoint {
     fun iconProvider(): AppIconProvider
 
     fun widgetUpdater(): WidgetUpdater
+
+    fun notesRepository(): NotesRepository
 }
 
 fun Context.widgetEntryPoint(): WidgetEntryPoint =

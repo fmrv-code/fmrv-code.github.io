@@ -133,6 +133,7 @@ private fun WidgetCard(config: WidgetConfig, viewModel: HomeViewModel, onClick: 
                     text = when (config.contentType) {
                         WidgetContentType.APP_SHORTCUT -> config.targetLabel ?: stringResource(R.string.type_shortcut)
                         WidgetContentType.CLOCK_DATE -> stringResource(R.string.type_clock)
+                        WidgetContentType.NOTES_LIST -> stringResource(R.string.type_notes)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

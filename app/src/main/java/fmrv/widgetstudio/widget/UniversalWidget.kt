@@ -6,6 +6,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
+import android.text.format.DateUtils
 import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
@@ -26,16 +27,21 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.appWidgetBackground
 import androidx.glance.appwidget.cornerRadius
+import androidx.glance.appwidget.lazy.LazyColumn
+import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
+import androidx.glance.layout.Row
 import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
@@ -46,6 +52,8 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import fmrv.widgetstudio.R
+import fmrv.widgetstudio.domain.model.NoteSummary
+import fmrv.widgetstudio.domain.model.NotesSnapshot
 import fmrv.widgetstudio.domain.model.WidgetConfig
 import fmrv.widgetstudio.domain.model.WidgetContentType
 import fmrv.widgetstudio.domain.model.WidgetFont
@@ -70,11 +78,26 @@ class UniversalWidget : GlanceAppWidget() {
             ?.targetPackage
             ?.let { entryPoint.iconProvider().icon(it, iconPx) }
 
-        provideContent { UniversalWidgetContent(appWidgetId, config, icon) }
+        val notes = if (config?.contentType == WidgetContentType.NOTES_LIST) {
+            loadNotes(context, entryPoint.notesRepository())
+        } else {
+            null
+        }
+
+        provideContent { UniversalWidgetContent(appWidgetId, config, icon, notes) }
+    }
+
+    /** Lit le cache (sans réseau). Si le cache est vide et ancien, déclenche une actualisation en arrière-plan. */
+    private suspend fun loadNotes(context: Context, repository: fmrv.widgetstudio.domain.repository.NotesRepository): NotesSnapshot {
+        val snapshot = repository.snapshot()
+        val stale = System.currentTimeMillis() - snapshot.refreshedAtMillis > EMPTY_CACHE_RETRY_MS
+        if (snapshot.connected && snapshot.notes.isEmpty() && stale) NotesRefreshWorker.enqueueNow(context)
+        return snapshot
     }
 
     private companion object {
         const val ICON_BITMAP_DP = 72
+        const val EMPTY_CACHE_RETRY_MS = 5 * 60 * 1000L
     }
 }
 
@@ -87,7 +110,7 @@ fun configureIntent(context: Context, appWidgetId: Int): Intent =
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
 @Composable
-private fun UniversalWidgetContent(appWidgetId: Int, config: WidgetConfig?, icon: Bitmap?) {
+private fun UniversalWidgetContent(appWidgetId: Int, config: WidgetConfig?, icon: Bitmap?, notes: NotesSnapshot?) {
     val context = LocalContext.current
     if (config == null) {
         UnconfiguredContent(context, appWidgetId)
@@ -106,6 +129,8 @@ private fun UniversalWidgetContent(appWidgetId: Int, config: WidgetConfig?, icon
     val clickIntent = when (config.contentType) {
         WidgetContentType.APP_SHORTCUT -> launchIntent ?: configureIntent(context, appWidgetId)
         WidgetContentType.CLOCK_DATE -> launchIntent
+        // Chaque note a son propre clic ; le titre du widget ouvre Joplin.
+        WidgetContentType.NOTES_LIST -> null
     }
     val clickModifier = if (clickIntent != null) {
         GlanceModifier.clickable(actionStartActivity(clickIntent))
@@ -121,6 +146,7 @@ private fun UniversalWidgetContent(appWidgetId: Int, config: WidgetConfig?, icon
         when (config.contentType) {
             WidgetContentType.APP_SHORTCUT -> AppShortcutContent(config, icon, widthDp, heightDp)
             WidgetContentType.CLOCK_DATE -> ClockContent(context, config, widthDp, heightDp)
+            WidgetContentType.NOTES_LIST -> NotesContent(context, config, notes, widthDp, heightDp)
         }
     }
 }
@@ -257,6 +283,123 @@ private fun UnconfiguredContent(context: Context, appWidgetId: Int) {
             style = TextStyle(
                 color = ColorProvider(Color.White),
                 fontSize = 13.sp,
+                textAlign = TextAlign.Center,
+            ),
+        )
+    }
+}
+
+@Composable
+private fun NotesContent(
+    context: Context,
+    config: WidgetConfig,
+    snapshot: NotesSnapshot?,
+    widthDp: Float,
+    heightDp: Float,
+) {
+    val textColor = Color(config.textColor)
+    val titleSp = WidgetStyle.notesTitleSizeSp(widthDp, heightDp)
+    val font = glanceFont(config.font)
+    val joplinIntent = JoplinLinks.launchIntent(context)
+
+    Column(modifier = GlanceModifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
+        if (WidgetStyle.showNotesHeader(heightDp)) {
+            Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                val titleModifier = GlanceModifier.defaultWeight()
+                Text(
+                    text = config.name.ifBlank { context.getString(R.string.type_notes) },
+                    maxLines = 1,
+                    modifier = if (joplinIntent != null) {
+                        titleModifier.clickable(actionStartActivity(joplinIntent))
+                    } else {
+                        titleModifier
+                    },
+                    style = TextStyle(
+                        color = ColorProvider(textColor),
+                        fontSize = (titleSp + 2f).sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = font,
+                    ),
+                )
+                Image(
+                    provider = ImageProvider(R.drawable.ic_refresh),
+                    contentDescription = context.getString(R.string.notes_refresh),
+                    modifier = GlanceModifier.size(36.dp).padding(8.dp).clickable(actionRunCallback<RefreshNotesAction>()),
+                    colorFilter = ColorFilter.tint(ColorProvider(textColor)),
+                )
+            }
+        }
+
+        val notes = snapshot?.notes.orEmpty()
+        when {
+            snapshot == null || !snapshot.connected -> NotesHint(context.getString(R.string.notes_not_connected), textColor, font, titleSp)
+            notes.isEmpty() -> NotesHint(context.getString(R.string.notes_empty), textColor, font, titleSp)
+            else -> {
+                val deepLink = JoplinLinks.supportsOpenNote(context)
+                val showSnippet = WidgetStyle.showNoteSnippet(heightDp)
+                val snippetSp = WidgetStyle.notesSnippetSizeSp(titleSp)
+                val now = System.currentTimeMillis()
+                LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
+                    items(notes, itemId = { it.id.hashCode().toLong() }) { note ->
+                        NoteRow(context, note, deepLink, showSnippet, now, textColor, font, titleSp, snippetSp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoteRow(
+    context: Context,
+    note: NoteSummary,
+    deepLink: Boolean,
+    showSnippet: Boolean,
+    nowMillis: Long,
+    textColor: Color,
+    font: FontFamily,
+    titleSp: Float,
+    snippetSp: Float,
+) {
+    val intent = JoplinLinks.noteIntent(context, note, deepLink)
+    val base = GlanceModifier.fillMaxWidth().padding(vertical = 4.dp)
+    Column(modifier = if (intent != null) base.clickable(actionStartActivity(intent)) else base) {
+        Text(
+            text = note.title.ifBlank { context.getString(R.string.notes_untitled) },
+            maxLines = 1,
+            style = TextStyle(
+                color = ColorProvider(textColor),
+                fontSize = titleSp.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = font,
+            ),
+        )
+        if (showSnippet) {
+            val whenText = DateUtils.getRelativeTimeSpanString(
+                note.updatedMillis, nowMillis, DateUtils.MINUTE_IN_MILLIS, DateUtils.FORMAT_ABBREV_RELATIVE,
+            ).toString()
+            Text(
+                text = if (note.snippet.isBlank()) whenText else "$whenText · ${note.snippet}",
+                maxLines = 1,
+                style = TextStyle(
+                    color = ColorProvider(textColor.copy(alpha = 0.72f)),
+                    fontSize = snippetSp.sp,
+                    fontFamily = font,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun NotesHint(text: String, textColor: Color, font: FontFamily, sizeSp: Float) {
+    Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(
+            text = text,
+            style = TextStyle(
+                color = ColorProvider(textColor.copy(alpha = 0.85f)),
+                fontSize = sizeSp.sp,
+                fontFamily = font,
                 textAlign = TextAlign.Center,
             ),
         )

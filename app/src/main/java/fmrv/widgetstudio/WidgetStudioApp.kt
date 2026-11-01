@@ -2,6 +2,7 @@ package fmrv.widgetstudio
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
+import fmrv.widgetstudio.widget.NotesRefreshWorker
 import fmrv.widgetstudio.widget.WidgetReconciler
 import fmrv.widgetstudio.widget.WidgetRefreshWorker
 import javax.inject.Inject
@@ -20,6 +21,7 @@ class WidgetStudioApp : Application() {
     override fun onCreate() {
         super.onCreate()
         WidgetRefreshWorker.schedule(this)
+        NotesRefreshWorker.schedulePeriodic(this)
         scope.launch {
             try {
                 reconciler.run()

@@ -27,6 +27,16 @@ object WidgetStyle {
 
     fun dateSizeSp(timeSizeSp: Float): Float = (timeSizeSp * 0.36f).coerceIn(10f, 18f)
 
+    fun notesTitleSizeSp(widthDp: Float, heightDp: Float): Float =
+        (minOf(widthDp, heightDp) * 0.085f).coerceIn(11f, 15f)
+
+    fun notesSnippetSizeSp(titleSizeSp: Float): Float = (titleSizeSp * 0.8f).coerceIn(9f, 12f)
+
+    /** Les extraits ne tiennent que sur un widget assez haut. */
+    fun showNoteSnippet(heightDp: Float): Boolean = heightDp >= 100f
+
+    fun showNotesHeader(heightDp: Float): Boolean = heightDp >= 80f
+
     fun timePattern(use24Hour: Boolean): String = if (use24Hour) "HH:mm" else "h:mm"
 
     fun datePattern(widthDp: Float): String = if (widthDp >= WIDE_DATE_MIN_WIDTH) "EEEE d MMMM" else "EEE d MMM"

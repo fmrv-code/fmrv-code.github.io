@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Réseau : uniquement pour lire les notes Joplin sur OneDrive (Microsoft Graph, lecture seule). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Visibilité des applications lançables, sans la permission restreinte QUERY_ALL_PACKAGES. -->
     <queries>
         <intent>
@@ -20,7 +23,8 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -34,6 +38,23 @@
             android:excludeFromRecents="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!-- Retour de la connexion Microsoft (OAuth) : fmrv.widgetstudio://oauth -->
+        <activity
+            android:name=".widget.OAuthRedirectActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="oauth"
+                    android:scheme="fmrv.widgetstudio" />
             </intent-filter>
         </activity>
 

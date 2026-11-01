@@ -36,6 +36,7 @@
 
     <string name="type_shortcut">Raccourci d’application</string>
     <string name="type_clock">Horloge et date</string>
+    <string name="type_notes">Notes Joplin</string>
 
     <string name="app_choose">Choisir une application</string>
     <string name="app_change">Changer</string>
@@ -67,7 +68,7 @@
     <string name="settings_dynamic">Couleurs dynamiques</string>
     <string name="settings_dynamic_hint">Utilise les couleurs de votre fond d’écran (Android 12 et plus)</string>
     <string name="settings_haptics">Retour haptique</string>
-    <string name="settings_about">Widget Studio crée des widgets personnalisés pour vos applications. L’application ne collecte aucune donnée et n’utilise pas Internet.</string>
+    <string name="settings_about">Widget Studio crée des widgets personnalisés pour vos applications. L’application ne collecte aucune donnée. Le réseau n’est utilisé que si vous connectez OneDrive pour afficher vos notes Joplin.</string>
 
     <string name="error_save">Impossible d’enregistrer le widget.</string>
     <string name="error_pin_unsupported">Votre écran d’accueil ne permet pas l’ajout direct. Ajoutez « Widget Studio » depuis le menu des widgets (appui long sur l’écran d’accueil).</string>
@@ -78,4 +79,38 @@
     <string name="widget_medium_label">Widget Studio · Moyen</string>
     <string name="widget_wide_label">Widget Studio · Large</string>
     <string name="widget_unconfigured">Touchez pour configurer</string>
+
+    <string name="notes_source_hint">Affiche vos notes Joplin les plus récentes, lues depuis OneDrive. Connectez-vous d’abord dans Réglages.</string>
+    <string name="notes_refresh">Actualiser</string>
+    <string name="notes_not_connected">Connectez OneDrive dans Widget Studio : Réglages › Joplin</string>
+    <string name="notes_empty">Aucune note pour l’instant. Touchez ⟳ pour actualiser.</string>
+    <string name="notes_untitled">(sans titre)</string>
+    <string name="preview_note_1">Idées de projet</string>
+    <string name="preview_note_1_snippet">Refaire le site, tester une nouvelle appli…</string>
+    <string name="preview_note_2">Liste de courses</string>
+    <string name="preview_note_2_snippet">Pain, lait, café, citrons</string>
+    <string name="preview_note_3">Réunion de lundi</string>
+    <string name="preview_note_3_snippet">Points à aborder avec l’équipe</string>
+    <string name="preview_note_4">Livres à lire</string>
+
+    <string name="joplin_title">Joplin (OneDrive)</string>
+    <string name="joplin_intro">Affiche vos notes Joplin dans un widget. Lecture seule : Widget Studio lit les fichiers que Joplin synchronise sur OneDrive, sans jamais les modifier. Le chiffrement de bout en bout de Joplin doit être désactivé.</string>
+    <string name="joplin_setup_steps">Configuration (une seule fois) :\n1. Sur portal.azure.com, ouvrez Microsoft Entra ID › Inscriptions d’applications › Nouvelle inscription.\n2. Types de comptes : « Comptes personnels Microsoft uniquement ».\n3. URI de redirection : plateforme « Client mobile et de bureau », valeur personnalisée %1$s\n4. Dans Authentification, activez « Autoriser les flux clients publics ».\n5. Copiez l’« ID d’application (client) » ci-dessous.</string>
+    <string name="joplin_client_id">ID d’application (client) Azure</string>
+    <string name="joplin_folder">Dossier Joplin sur OneDrive</string>
+    <string name="joplin_connect">Se connecter à OneDrive</string>
+    <string name="joplin_disconnect">Se déconnecter</string>
+    <string name="joplin_refresh">Actualiser</string>
+    <string name="joplin_status_connected">Connecté · %1$d notes · actualisé %2$s</string>
+    <string name="joplin_status_connected_empty">Connecté · pas encore d’actualisation</string>
+    <string name="joplin_connected">Connecté à OneDrive</string>
+    <string name="joplin_connect_failed">La connexion à OneDrive a échoué</string>
+    <string name="joplin_disconnected">Déconnecté. Les notes ont été effacées de l’appareil.</string>
+    <string name="joplin_need_client_id">Saisissez d’abord l’ID d’application Azure.</string>
+    <string name="joplin_refresh_ok">%1$d notes récupérées.</string>
+    <string name="joplin_error_not_connected">Non connecté à OneDrive.</string>
+    <string name="joplin_error_network">Réseau indisponible. Réessayez plus tard.</string>
+    <string name="joplin_error_auth">Session expirée ou refusée. Reconnectez-vous.</string>
+    <string name="joplin_error_folder">Dossier introuvable sur OneDrive. Vérifiez le chemin (par défaut Apps/Joplin).</string>
+    <string name="joplin_error_unknown">Erreur inattendue pendant la lecture des notes.</string>
 </resources>

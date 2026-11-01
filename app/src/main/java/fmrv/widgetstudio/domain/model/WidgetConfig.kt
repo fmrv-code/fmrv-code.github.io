@@ -2,7 +2,7 @@ package fmrv.widgetstudio.domain.model
 
 enum class WidgetShape { SQUARE, ROUNDED, PILL }
 
-enum class WidgetContentType { APP_SHORTCUT, CLOCK_DATE }
+enum class WidgetContentType { APP_SHORTCUT, CLOCK_DATE, NOTES_LIST }
 
 enum class WidgetFont { SANS, SERIF, MONO, CURSIVE }
 

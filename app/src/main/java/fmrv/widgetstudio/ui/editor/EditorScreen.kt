@@ -162,6 +162,7 @@ fun EditorScreen(
                 WidgetPreview(
                     config = config,
                     icon = state.previewIcon,
+                    notes = state.previewNotes,
                     sizeOption = previewSize,
                     scale = if (previewSize == WidgetSizeOption.WIDE) 0.7f else 0.8f,
                 )
@@ -190,10 +191,29 @@ fun EditorScreen(
                                 label = stringResource(R.string.type_clock),
                                 onClick = { haptics.tick(); viewModel.update { it.copy(contentType = WidgetContentType.CLOCK_DATE) } },
                             )
+                            val notesName = stringResource(R.string.type_notes)
+                            ChoiceChip(
+                                selected = config.contentType == WidgetContentType.NOTES_LIST,
+                                label = notesName,
+                                onClick = {
+                                    haptics.tick()
+                                    viewModel.update {
+                                        it.copy(contentType = WidgetContentType.NOTES_LIST, name = it.name.ifBlank { notesName })
+                                    }
+                                },
+                            )
                         }
                     }
 
-                    Section(
+                    if (config.contentType == WidgetContentType.NOTES_LIST) {
+                        Text(
+                            text = stringResource(R.string.notes_source_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    if (config.contentType != WidgetContentType.NOTES_LIST) Section(
                         if (config.contentType == WidgetContentType.APP_SHORTCUT) R.string.section_app else R.string.section_app_optional,
                     ) {
                         Surface(
@@ -308,6 +328,7 @@ fun EditorScreen(
                         WidgetContentType.APP_SHORTCUT -> SwitchRow(R.string.option_show_label, config.showLabel) { value ->
                             haptics.tick(); viewModel.update { it.copy(showLabel = value) }
                         }
+                        WidgetContentType.NOTES_LIST -> Unit
                         WidgetContentType.CLOCK_DATE -> {
                             SwitchRow(R.string.option_24h, config.use24Hour) { value ->
                                 haptics.tick(); viewModel.update { it.copy(use24Hour = value) }

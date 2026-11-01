@@ -100,6 +100,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     }
                 }
             }
+            JoplinSettingsCard()
             Text(
                 text = stringResource(R.string.settings_about),
                 style = MaterialTheme.typography.bodySmall,

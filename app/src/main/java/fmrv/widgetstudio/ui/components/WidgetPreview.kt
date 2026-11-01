@@ -12,6 +12,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.res.stringResource
+import fmrv.widgetstudio.R
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import fmrv.widgetstudio.domain.model.NoteSummary
 import fmrv.widgetstudio.domain.model.WidgetConfig
 import fmrv.widgetstudio.domain.model.WidgetContentType
 import fmrv.widgetstudio.domain.model.WidgetFont
@@ -60,6 +67,7 @@ fun WidgetPreview(
     sizeOption: WidgetSizeOption,
     modifier: Modifier = Modifier,
     scale: Float = 1f,
+    notes: List<NoteSummary> = emptyList(),
 ) {
     val widthDp = sizeOption.widthDp * scale
     val heightDp = sizeOption.heightDp * scale
@@ -84,6 +92,7 @@ fun WidgetPreview(
                 textColor = textColor,
             )
             WidgetContentType.CLOCK_DATE -> ClockPreview(config, widthDp, heightDp, textColor)
+            WidgetContentType.NOTES_LIST -> NotesPreview(config, notes, widthDp, heightDp, textColor)
         }
     }
 }
@@ -158,3 +167,65 @@ private fun ClockPreview(config: WidgetConfig, widthDp: Float, heightDp: Float, 
         }
     }
 }
+
+@Composable
+private fun NotesPreview(
+    config: WidgetConfig,
+    notes: List<NoteSummary>,
+    widthDp: Float,
+    heightDp: Float,
+    textColor: Color,
+) {
+    val samples = listOf(
+        NoteSummary("1", stringResource(R.string.preview_note_1), stringResource(R.string.preview_note_1_snippet), 0L),
+        NoteSummary("2", stringResource(R.string.preview_note_2), stringResource(R.string.preview_note_2_snippet), 0L),
+        NoteSummary("3", stringResource(R.string.preview_note_3), stringResource(R.string.preview_note_3_snippet), 0L),
+        NoteSummary("4", stringResource(R.string.preview_note_4), "", 0L),
+    )
+    val shown = notes.ifEmpty { samples }
+    val titleSp = WidgetStyle.notesTitleSizeSp(widthDp, heightDp)
+    val showSnippet = WidgetStyle.showNoteSnippet(heightDp)
+    val font = composeFont(config.font)
+
+    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
+        if (WidgetStyle.showNotesHeader(heightDp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = config.name.ifBlank { stringResource(R.string.type_notes) },
+                    color = textColor,
+                    fontSize = (titleSp + 2f).sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = font,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(Icons.Outlined.Refresh, contentDescription = null, tint = textColor, modifier = Modifier.size(20.dp))
+            }
+        }
+        shown.take(MAX_PREVIEW_NOTES).forEach { note ->
+            Column(Modifier.padding(vertical = 3.dp)) {
+                Text(
+                    text = note.title.ifBlank { stringResource(R.string.notes_untitled) },
+                    color = textColor,
+                    fontSize = titleSp.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = font,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (showSnippet && note.snippet.isNotBlank()) {
+                    Text(
+                        text = note.snippet,
+                        color = textColor.copy(alpha = 0.72f),
+                        fontSize = WidgetStyle.notesSnippetSizeSp(titleSp).sp,
+                        fontFamily = font,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private const val MAX_PREVIEW_NOTES = 6

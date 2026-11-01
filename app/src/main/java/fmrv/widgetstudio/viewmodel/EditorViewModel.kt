@@ -8,12 +8,14 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fmrv.widgetstudio.R
 import fmrv.widgetstudio.domain.model.AppInfo
+import fmrv.widgetstudio.domain.model.NoteSummary
 import fmrv.widgetstudio.domain.model.PinResult
 import fmrv.widgetstudio.domain.model.WidgetConfig
 import fmrv.widgetstudio.domain.model.WidgetContentType
 import fmrv.widgetstudio.domain.model.WidgetSizeOption
 import fmrv.widgetstudio.domain.repository.AppIconProvider
 import fmrv.widgetstudio.domain.repository.AppsSource
+import fmrv.widgetstudio.domain.repository.NotesRepository
 import fmrv.widgetstudio.domain.repository.WidgetPinner
 import fmrv.widgetstudio.domain.repository.WidgetRepository
 import fmrv.widgetstudio.domain.repository.WidgetUpdater
@@ -32,12 +34,13 @@ data class EditorUiState(
     val config: WidgetConfig = WidgetConfig(appWidgetId = WidgetConfig.NO_ID),
     val apps: List<AppInfo> = emptyList(),
     val previewIcon: ImageBitmap? = null,
+    val previewNotes: List<NoteSummary> = emptyList(),
     val pinSize: WidgetSizeOption = WidgetSizeOption.MEDIUM,
     val loading: Boolean = true,
 ) {
-    /** Un raccourci exige une application cible ; l'horloge peut s'en passer. */
+    /** Un raccourci exige une application cible ; l'horloge et la liste de notes peuvent s'en passer. */
     val canSave: Boolean
-        get() = config.contentType == WidgetContentType.CLOCK_DATE || config.targetPackage != null
+        get() = config.contentType != WidgetContentType.APP_SHORTCUT || config.targetPackage != null
 
     /** Vrai quand le widget existe déjà sur l'écran d'accueil (édition) ; faux pour une création. */
     val isPlaced: Boolean
@@ -59,6 +62,7 @@ class EditorViewModel @Inject constructor(
     private val icons: AppIconProvider,
     private val updater: WidgetUpdater,
     private val pinner: WidgetPinner,
+    private val notes: NotesRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(EditorUiState())
@@ -81,6 +85,11 @@ class EditorViewModel @Inject constructor(
         viewModelScope.launch {
             val apps = runCatching { appsSource.loadApps() }.getOrDefault(emptyList())
             _state.update { it.copy(apps = apps) }
+        }
+        viewModelScope.launch {
+            // Aperçu : vraies notes si le cache en contient, sinon l'interface affichera des exemples.
+            val cached = runCatching { notes.snapshot().notes }.getOrDefault(emptyList())
+            _state.update { it.copy(previewNotes = cached) }
         }
         viewModelScope.launch { initConfig(widgetId, presetPackage) }
     }

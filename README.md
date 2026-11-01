@@ -6,6 +6,7 @@ Application Android native (Kotlin, Jetpack Compose, Jetpack Glance) pour créer
 
 - **Raccourci d'application** : un widget qui lance n'importe quelle application installée.
 - **Horloge et date** : heure animée par le système (sans réveiller l'application), format 12 / 24 h, date optionnelle. Un appui peut ouvrir une application au choix.
+- **Notes Joplin** : liste des notes récentes de Joplin (qui n'a pas de widget), lue depuis OneDrive. Voir ci-dessous.
 - **Éditeur visuel** avec aperçu en temps réel : type, application, nom, taille, forme (carré, arrondi, capsule), couleurs du fond et du texte, transparence, police.
 - **Deux façons d'ajouter un widget** : depuis l'application (« Ajouter à l'écran d'accueil », épinglage système) ou depuis le menu des widgets du lanceur (« Widget Studio » → l'éditeur s'ouvre à la pose).
 - **Mode sombre** : suivre le système, clair, sombre ou noir pur AMOLED ; couleurs dynamiques (Android 12+) en option.
@@ -40,7 +41,26 @@ Android impose de déclarer chaque type de widget dans le manifeste : on ne peut
 - Android 12+ : coins arrondis natifs (`cornerRadius`). Android 11 : repli par forme vectorielle teintée (le rayon est alors étiré avec le widget).
 - Les polices personnalisées ne sont pas possibles dans un widget (RemoteViews) : le choix se limite aux familles système (standard, serif, monospace, manuscrite). Sur Samsung, « standard » correspond à One UI Sans.
 - Liste des applications via `<queries>` sur l'intent LAUNCHER : aucune permission `QUERY_ALL_PACKAGES`.
-- Aucune permission demandée ; l'application n'utilise pas Internet.
+- Unique permission : `INTERNET`, utilisée uniquement pour lire vos notes Joplin sur OneDrive si vous connectez votre compte. Sans connexion, aucune requête réseau n'est émise.
+
+## Widget de notes Joplin (OneDrive)
+
+Android interdit à une application de lire les données d'une autre : les notes de Joplin sont dans sa base privée. Widget Studio lit donc **les fichiers que Joplin synchronise sur OneDrive** (un fichier Markdown par note dans `Apps/Joplin`), en **lecture seule** (permission Microsoft Graph `Files.Read`).
+
+Prérequis : synchronisation Joplin vers OneDrive, **chiffrement de bout en bout désactivé** (les notes chiffrées ne sont pas lisibles).
+
+**Configuration unique de la connexion** (gratuite, sans secret embarqué) :
+
+1. Sur [portal.azure.com](https://portal.azure.com) : Microsoft Entra ID › Inscriptions d'applications › Nouvelle inscription.
+2. Types de comptes pris en charge : « Comptes personnels Microsoft uniquement ».
+3. URI de redirection : plateforme « Client mobile et de bureau », URI personnalisée `fmrv.widgetstudio://oauth`.
+4. Authentification › « Autoriser les flux clients publics » : Oui.
+5. Copier l'« ID d'application (client) », puis dans Widget Studio : Réglages › Joplin (OneDrive) › coller l'ID › « Se connecter à OneDrive ».
+6. Créer un widget de type « Notes Joplin ».
+
+Fonctionnement : OAuth 2.0 code d'autorisation + PKCE ; le jeton de rafraîchissement est chiffré avec une clé de l'Android Keystore. Le widget affiche un **cache local** (aucun accès réseau au moment du dessin) mis à jour toutes les ~30 minutes (WorkManager, réseau requis, batterie non faible) ou avec le bouton ⟳. Seuls les fichiers modifiés depuis la dernière actualisation sont retéléchargés. Les notes en conflit ou à la corbeille sont ignorées. Un appui sur une note tente de l'ouvrir dans Joplin (lien `joplin://x-callback-url/openNote`) et, à défaut, ouvre simplement Joplin.
+
+Limites : 20 notes les plus récentes ; le titre du carnet n'est pas affiché ; aucune modification des notes depuis le widget.
 
 ## Compiler
 

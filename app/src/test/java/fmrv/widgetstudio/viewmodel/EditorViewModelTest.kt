@@ -5,12 +5,16 @@ import fmrv.widgetstudio.R
 import fmrv.widgetstudio.data.FakeWidgetConfigDao
 import fmrv.widgetstudio.data.repository.WidgetRepositoryImpl
 import fmrv.widgetstudio.domain.model.AppInfo
+import fmrv.widgetstudio.domain.model.NoteSummary
+import fmrv.widgetstudio.domain.model.NotesSnapshot
+import fmrv.widgetstudio.domain.model.RefreshResult
 import fmrv.widgetstudio.domain.model.PinResult
 import fmrv.widgetstudio.domain.model.WidgetConfig
 import fmrv.widgetstudio.domain.model.WidgetContentType
 import fmrv.widgetstudio.domain.model.WidgetSizeOption
 import fmrv.widgetstudio.domain.repository.AppIconProvider
 import fmrv.widgetstudio.domain.repository.AppsSource
+import fmrv.widgetstudio.domain.repository.NotesRepository
 import fmrv.widgetstudio.domain.repository.WidgetPinner
 import fmrv.widgetstudio.domain.repository.WidgetUpdater
 import kotlin.test.AfterTest
@@ -41,6 +45,12 @@ class EditorViewModelTest {
         override suspend fun icon(packageName: String, sizePx: Int): Bitmap? = null
     }
 
+    private class FakeNotes(private val cached: List<NoteSummary> = emptyList()) : NotesRepository {
+        override suspend fun snapshot() = NotesSnapshot(connected = true, notes = cached, refreshedAtMillis = 1L)
+        override suspend fun refresh(): RefreshResult = RefreshResult.Success(cached.size)
+        override suspend fun clear() = Unit
+    }
+
     private class RecordingUpdater : WidgetUpdater {
         val refreshed = mutableListOf<Int>()
         override suspend fun refresh(appWidgetId: Int) {
@@ -64,12 +74,13 @@ class EditorViewModelTest {
     private val updater = RecordingUpdater()
     private val pinner = FakePinner()
 
-    private fun viewModel() = EditorViewModel(
+    private fun viewModel(cachedNotes: List<NoteSummary> = emptyList()) = EditorViewModel(
         repository = repository,
         appsSource = FakeApps(listOf(chrome, maps)),
         icons = NoIcons(),
         updater = updater,
         pinner = pinner,
+        notes = FakeNotes(cachedNotes),
     )
 
     @BeforeTest
@@ -221,5 +232,25 @@ class EditorViewModelTest {
 
         assertEquals("Modifié", vm.state.value.config.name)
         assertEquals(chrome.packageName, vm.state.value.config.targetPackage)
+    }
+
+    @Test
+    fun `une liste de notes peut etre enregistree sans application`() {
+        val vm = viewModel()
+        vm.start(widgetId = 0, presetPackage = null)
+
+        vm.update { it.copy(contentType = WidgetContentType.NOTES_LIST) }
+
+        assertTrue(vm.state.value.canSave)
+    }
+
+    @Test
+    fun `l'apercu reprend les notes en cache`() {
+        val cached = listOf(NoteSummary("a", "Courses", "Pain", 10L))
+        val vm = viewModel(cachedNotes = cached)
+
+        vm.start(widgetId = 0, presetPackage = null)
+
+        assertEquals(cached, vm.state.value.previewNotes)
     }
 }
